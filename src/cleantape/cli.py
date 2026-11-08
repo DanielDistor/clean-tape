@@ -99,6 +99,56 @@ def ingest(state_dir: StateOpt = None) -> None:
     _print_ingest(summary)
 
 
+def run_transform(cfg: Config) -> int:
+    """Rebuild derived.parquet from observations. Returns row count."""
+    from cleantape.transform.derive import build_derived
+
+    st = _state(cfg)
+    d = cfg.settings.derive
+    derived = build_derived(
+        st.read("observations"), cfg.universe, d.zscore_window, d.zscore_min_obs, d.ffill_max_days
+    )
+    st.write("derived", derived)
+    log.info("derived rows=%d series=%d", len(derived), derived["series_id"].nunique())
+    return len(derived)
+
+
+@app.command()
+def transform(state_dir: StateOpt = None) -> None:
+    """Rebuild derived series (spreads, crosses, changes, z-scores) from observations."""
+    cfg = _boot(state_dir)
+    typer.echo(f"derived rows: {run_transform(cfg)}")
+
+
+@app.command()
+def query(
+    sql: Annotated[
+        str,
+        typer.Argument(
+            help="SQL over views: observations, derived, latest, "
+            "catalog, manifest, check_results, runs"
+        ),
+    ] = "",
+    examples: Annotated[bool, typer.Option(help="List example queries")] = False,
+    state_dir: StateOpt = None,
+) -> None:
+    """Run SQL against the parquet state with DuckDB and print the result."""
+    import pandas as pd
+
+    from cleantape.store.queries import EXAMPLE_QUERIES
+    from cleantape.store.queries import query as run_query
+
+    cfg = _boot(state_dir)
+    if examples or not sql:
+        for title, q in EXAMPLE_QUERIES.items():
+            typer.echo(f"-- {title}\n{q};\n")
+        return
+    with pd.option_context(
+        "display.max_rows", 200, "display.width", 200, "display.max_columns", 30
+    ):
+        typer.echo(run_query(_state(cfg), cfg.universe, sql).to_string(index=False))
+
+
 def _not_yet(name: str) -> None:
     typer.echo(f"`{name}` is not implemented yet", err=True)
     raise typer.Exit(2)

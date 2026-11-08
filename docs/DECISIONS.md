@@ -31,3 +31,10 @@ One line of reasoning each. Newest at the bottom of each section.
 - **WTI spot (DCOILWTICO) uses the `us_bond` (federal) calendar, not NYSE**: FRED has no value on Columbus Day, Veterans Day or the day after Thanksgiving.
 - **Futures use the NYSE calendar** as an approximation of CME's; partial-bar rule is "NY date has rolled", like FX.
 - **ECB partial-bar rule**: a fix dated D is final after 16:30 Frankfurt time on D (published ~16:00 CET).
+
+## Transform
+- **Best series = primary source, fallback fills gaps only**; the chosen `source` is kept on every derived row so a fallback day is always visible.
+- **1d change requires the previous session's own observation** (no bridging gaps); 1w/1m/YTD use the last observation on or before the reference date within 3 days (`ffill_max_days`).
+- **z-score = (move − mean) / std of the previous 252 valid moves**, ddof=1, null below 120. Mean-adjusted because some series (e.g. 2022 front-end yields) trend.
+- **Spreads stored in bp, yields in %**; `change_mode: bp` multiplies yield differences by 100 but not spread differences.
+- **DuckDB is in-memory only**, with views over parquet built on each `cleantape query`; nothing to keep in sync.
