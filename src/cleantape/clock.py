@@ -126,7 +126,9 @@ def decide_slot(
     in_window = active_slot(now_utc, windows)
     slot = in_window if requested == "auto" else requested
     if force:
-        return SlotDecision(True, slot or "evening", today, "forced")
+        if slot is None:  # forced outside any window: afternoon/evening → evening, else morning
+            slot = "evening" if ny(now_utc).time() >= dt.time(12, 0) else "morning"
+        return SlotDecision(True, slot, today, "forced")
     if slot is None:
         return SlotDecision(False, None, today, f"outside window ({fmt_ny(now_utc)})")
     if requested != "auto" and in_window != requested:
