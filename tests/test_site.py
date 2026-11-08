@@ -119,8 +119,8 @@ def test_markets_options_have_json(clean_site: Path) -> None:
 
 def test_overview_has_mock_label_and_no_fail_banner(clean_site: Path) -> None:
     html = (clean_site / "index.html").read_text()
-    assert "MOCK" in html and "Data checks FAILED" not in html
-    assert "Pipeline may be down" not in html
+    assert "MOCK" in html and "DATA CHECKS FAILED" not in html
+    assert "PIPELINE MAY BE DOWN" not in html
     assert '<svg class="spark"' in html
 
 
@@ -135,7 +135,7 @@ def test_fail_is_visible_and_numbers_are_struck(cfg: Config, tmp_path: Path) -> 
     st, c = _state_with(cfg, tmp_path, sc.mutate)
     build_site(c, st, NOW, _portfolio(c, st), out_dir=tmp_path / "site")
     html = (tmp_path / "site" / "index.html").read_text()
-    assert "Data checks FAILED" in html and "UST 10Y" in html.split("Unreliable:")[1][:400]
+    assert "DATA CHECKS FAILED" in html and "UST 10Y" in html.split("Unreliable:")[1][:400]
     row = re.search(r'<tr id="DGS10"[^>]*>.*?</tr>', html, re.S)
     assert row and 'class="row-fail"' in row.group(0) and "<s>" in row.group(0)
     # derived spreads built on the bad leg are marked too
@@ -143,6 +143,8 @@ def test_fail_is_visible_and_numbers_are_struck(cfg: Config, tmp_path: Path) -> 
     assert s2s10s and "<s>" in s2s10s.group(0)
     movers = html.split('aria-label="Biggest moves by z-score"')[1].split("</section>")[0]
     assert "UST 10Y</span>" not in movers and "Excluded because their data FAILED" in movers
+    tape = html.split('class="tape"')[1].split("</header>")[0]
+    assert 'UST 10Y</span> <span class="bad">✕ UNRELIABLE' in tape and "250.00%" not in tape
     port = (tmp_path / "site" / "portfolio.html").read_text()
     assert "n/a — data issue" in port
     assert "light-fail" in html
@@ -154,7 +156,7 @@ def test_stale_banner_when_data_old(cfg: Config, tmp_path: Path) -> None:
     st, c = _state_with(cfg, tmp_path)
     later = NOW + dt.timedelta(days=7)
     build_site(c, st, later, None, out_dir=tmp_path / "site")
-    assert "Pipeline may be down" in (tmp_path / "site" / "index.html").read_text()
+    assert "PIPELINE MAY BE DOWN" in (tmp_path / "site" / "index.html").read_text()
 
 
 def test_empty_state_still_builds_red(cfg: Config, tmp_path: Path) -> None:

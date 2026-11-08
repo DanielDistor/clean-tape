@@ -206,6 +206,35 @@ def overview_rows(
     return groups
 
 
+def tape_items(cfg: Config, derived: pd.DataFrame, flags: dict[str, Flag]) -> list[dict[str, Any]]:
+    """Scrolling ticker-tape entries: every displayed series in display order.
+
+    FAIL-flagged series appear with a ✕ and no numbers, so the tape never shows a bad print.
+    """
+    cat = series_catalog(cfg.universe)
+    order = [g for g, _ in GROUPS]
+    latest = derived.sort_values("date").groupby("series_id").tail(1)
+    items = []
+    for r in latest.itertuples():
+        meta = cat.get(r.series_id)
+        if meta is None or meta.display_group not in order:
+            continue
+        flag = subject_flag(flags, r.series_id, meta, cfg)
+        bad = flag is not None and flag.severity == "FAIL"
+        items.append(
+            {
+                "id": r.series_id,
+                "name": meta.name,
+                "bad": bad,
+                "last": "" if bad else fmt_level(r.value, meta.units, r.series_id),
+                "chg": "" if bad else fmt_change(r.chg_1d, meta.change_mode),
+                "cls": "flat" if bad else sign_class(r.chg_1d),
+                "key": (order.index(meta.display_group), meta.display_order),
+            }
+        )
+    return sorted(items, key=lambda x: x["key"])
+
+
 def top_movers(
     cfg: Config, derived: pd.DataFrame, flags: dict[str, Flag], n: int = 5
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -406,6 +435,11 @@ def build_site(
         "repo_url": cfg.settings.site.repo_url,
         "plotly": PLOTLY_CDN,
         "pages": PAGES,
+        "tape": tape_items(cfg, derived, flags) if not derived.empty else [],
+        "commands": sorted(
+            (m.series_id, m.name) for m in cat.values() if m.display_group is not None
+        ),
+        "check_counts": results["severity"].value_counts().to_dict() if not results.empty else {},
         "names": {k: v.name for k, v in cat.items()},
     }
     env = _env()

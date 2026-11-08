@@ -84,3 +84,10 @@ One line of reasoning each. Newest at the bottom of each section.
 - **HTML is email-safe** (inline CSS, tables only, no JS/images) even though email delivery was dropped: the format stays ready for Outlook-style clients and prints cleanly. FAIL numbers appear only struck through, next to "unreliable — failed checks".
 - **Excel stores numbers, not strings**: yields as fractions with `0.00%`, bp changes as numbers with `+0.0`, dates as real dates, so an analyst can keep calculating on it.
 - **Credit & vol are split for Excel**: HY OAS goes on the Rates sheet, VIX on Equities, matching the requested sheet list.
+
+## Design (terminal theme)
+- **Dark trading-terminal look**: near-black panels, amber (`#ffa028`) for labels and UI accents only, IBM Plex Mono for every number (tabular), IBM Plex Sans Condensed for uppercase labels, function-key tabs (F1–F7 work as shortcuts; `/` focuses the ticker box). Fonts load from Google Fonts with system monospace fallbacks.
+- **Chart colours re-validated for the dark surface `#101113`** (dataviz validator, all pairs): amber `#cc7a00`, blue `#3987e5`, magenta `#d55181`. The bright UI amber failed the lightness band for chart marks, so marks use the darker step.
+- **Ticker tape** scrolls every displayed series' last and 1d move; it pauses on hover/focus, stops under `prefers-reduced-motion`, and shows FAIL series as "✕ UNRELIABLE" with no number.
+- **The EOD email/HTML report keeps a light theme**: email clients and printers handle light backgrounds far better.
+- **Header is sticky on desktop, static on phones** (a sticky three-row header would cover a third of a phone screen).

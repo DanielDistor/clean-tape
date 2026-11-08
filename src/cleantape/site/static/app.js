@@ -1,4 +1,5 @@
-/* Clean Tape — small vanilla JS: Plotly charts themed from CSS tokens, Markets picker, Health filter. */
+/* Clean Tape — small vanilla JS: terminal chrome (clock, F-keys, ticker box), Plotly charts themed
+   from CSS tokens, Markets picker, Health filter. Everything degrades: the pages work without JS. */
 (function () {
   "use strict";
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -9,11 +10,11 @@
     const ink2 = css("--ink-2"), grid = css("--grid"), axis = css("--axis");
     return Object.assign({
       paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-      font: { family: "system-ui, -apple-system, Segoe UI, sans-serif", size: 12, color: ink2 },
+      font: { family: "IBM Plex Mono, ui-monospace, Menlo, monospace", size: 11, color: ink2 },
       margin: { l: 48, r: 12, t: 8, b: 32 }, hovermode: "x unified", showlegend: false,
       xaxis: { gridcolor: grid, linecolor: axis, zeroline: false },
       yaxis: { gridcolor: grid, linecolor: axis, zeroline: false },
-      hoverlabel: { bgcolor: css("--surface"), bordercolor: axis, font: { color: css("--ink") } },
+      hoverlabel: { bgcolor: "#000", bordercolor: css("--amber"), font: { color: css("--ink"), family: "IBM Plex Mono, monospace" } },
     }, extra || {});
   }
   const config = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
@@ -90,6 +91,10 @@
       draw();
     }));
     pick.addEventListener("change", () => load(pick.value));
+    window.addEventListener("hashchange", () => {
+      const id = location.hash.slice(1);
+      if (id && id !== pick.value && [...pick.options].some((o) => o.value === id)) { pick.value = id; load(id); }
+    });
     const fromHash = location.hash.slice(1);
     if (fromHash && [...pick.options].some((o) => o.value === fromHash)) pick.value = fromHash;
     load(pick.value);
@@ -122,7 +127,42 @@
     }
   }
 
-  function init() { rates(); markets(); portfolio(); health(); }
+  // ---------------------------------------------------------------- Terminal chrome
+  function chrome() {
+    const clock = $("clock");
+    if (clock) {
+      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour12: false,
+        hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const tick = () => { clock.textContent = fmt.format(new Date()); };
+      tick(); setInterval(tick, 1000);
+    }
+    const keys = {};
+    document.querySelectorAll(".fkeys a[data-key]").forEach((a) => { keys[a.dataset.key] = a.href; });
+    const input = $("cmd-input"), form = $("cmd");
+    const options = input ? [...document.querySelectorAll("#cmd-list option")].map((o) => [o.value, o.textContent]) : [];
+    const resolve = (q) => {
+      q = q.trim().toUpperCase().replace(/<?GO>?$/, "").trim();
+      if (!q) return null;
+      const exact = options.find(([id, name]) => id === q || name.toUpperCase() === q);
+      if (exact) return exact[0];
+      const part = options.find(([id, name]) => id.startsWith(q) || name.toUpperCase().includes(q));
+      return part ? part[0] : null;
+    };
+    if (form) form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = resolve(input.value);
+      if (id) location.href = `markets.html#${id}`;
+      else { input.value = ""; input.placeholder = "NOT FOUND"; setTimeout(() => { input.placeholder = "TICKER"; }, 1500); }
+    });
+    document.addEventListener("keydown", (e) => {
+      const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
+      if (e.key === "/" && !typing && input) { e.preventDefault(); input.focus(); return; }
+      if (e.key === "Escape" && document.activeElement === input) { input.blur(); return; }
+      if (keys[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); location.href = keys[e.key]; }
+    });
+  }
+
+  function init() { chrome(); rates(); markets(); portfolio(); health(); }
   if (window.Plotly || !document.querySelector('script[src*="plotly"]')) init();
   else window.addEventListener("load", init);
 })();

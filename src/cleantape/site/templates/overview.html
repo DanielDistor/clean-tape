@@ -4,7 +4,7 @@
 {% block content %}
 {% if movers %}
 <section class="movers" aria-label="Biggest moves by z-score">
-  <h2>Biggest moves <span class="muted">by |z| vs 1y of daily moves</span></h2>
+  <h2>Top movers <span class="muted">ranked by |z| of today's move vs 1y of daily moves</span></h2>
   <ol>
   {% for m in movers %}
     <li><span class="mname">{{ m.name }}</span> <span class="{{ m.cls }}">{{ m.chg }}</span> <span class="z">{{ m.z }}</span>{% if m.date != headline %} <span class="asof">{{ m.date }}</span>{% endif %}</li>
@@ -17,10 +17,11 @@
 <div class="grid">
 {% for gid, label, rows in groups %}
 <section class="card">
-  <h2>{{ label }}</h2>
+  {% set show_asof = rows|selectattr("as_of")|list|length > 0 %}
+  <h2>{{ label }} <span class="muted">{{ rows|length }} series</span></h2>
   <div class="scroll">
   <table class="num">
-    <thead><tr><th class="l">Series</th><th>Last</th><th>1d</th><th>1w</th><th>1m</th><th>YTD</th><th title="z-score of today's move vs trailing 252 daily moves">z</th><th class="l">60d</th><th class="l">As of</th></tr></thead>
+    <thead><tr><th class="l">Series</th><th>Last</th><th>1d</th><th>1w</th><th>1m</th><th>YTD</th><th title="z-score of today's move vs trailing 252 daily moves">z</th><th class="l">60d</th>{% if show_asof %}<th class="l">As of</th>{% endif %}</tr></thead>
     <tbody>
     {% for r in rows %}
     <tr id="{{ r.id }}"{% if r.flag %} class="row-{{ r.flag.severity|lower }}"{% endif %}>
@@ -29,7 +30,7 @@
       {% for k in ["1d", "1w", "1m", "ytd"] %}<td class="{{ r.cls[k] }}">{{ flagged(r, r.chg[k]) }}</td>{% endfor %}
       <td class="{{ 'hot' if r.z_hot }}">{{ r.z }}</td>
       <td class="l spark-cell">{{ r.spark|safe }}</td>
-      <td class="l asof">{% if r.as_of %}<time datetime="{{ r.as_of }}" title="{{ r.as_of }}">{{ r.as_of.strftime("%b %d") }}</time>{% endif %}</td>
+      {% if show_asof %}<td class="l asof">{% if r.as_of %}<time datetime="{{ r.as_of }}" title="{{ r.as_of }}">{{ r.as_of.strftime("%b %d") }}</time>{% endif %}</td>{% endif %}
     </tr>
     {% endfor %}
     </tbody>
