@@ -1,0 +1,106 @@
+{# Email-safe: inline styles, tables only, no JS, no images/charts. #}
+{% set th = "padding:4px 8px;border-bottom:1px solid #c3c2b7;font:600 11px Arial,Helvetica,sans-serif;color:#52514e;text-align:right;text-transform:uppercase;" %}
+{% set thl = th ~ "text-align:left;" %}
+{% set td = "padding:4px 8px;border-bottom:1px solid #e1e0d9;font:13px Arial,Helvetica,sans-serif;color:#0b0b0b;text-align:right;white-space:nowrap;" %}
+{% set tdl = td ~ "text-align:left;" %}
+{% set h2 = "font:700 13px Arial,Helvetica,sans-serif;text-transform:uppercase;letter-spacing:.05em;color:#52514e;margin:20px 0 6px;" %}
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clean Tape — end-of-day report {{ m.date }}</title></head>
+<body style="margin:0;padding:0;background:#f9f9f7;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9f7;"><tr><td align="center" style="padding:16px;">
+<table role="presentation" width="760" cellpadding="0" cellspacing="0" style="max-width:760px;width:100%;background:#fcfcfb;border:1px solid #e1e0d9;">
+<tr><td style="padding:16px 20px;">
+
+<p style="font:700 18px Arial,Helvetica,sans-serif;margin:0;color:#0b0b0b;">Clean Tape — end-of-day report</p>
+<p style="font:13px Arial,Helvetica,sans-serif;margin:4px 0 0;color:#52514e;">As of {{ m.date }} · generated {{ generated }} · <a href="{{ m.site_url }}" style="color:#2a78d6;">charts on the live site</a></p>
+
+{# ---------------------------------------------------------------- data health #}
+{% if m.status == "FAIL" %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;"><tr><td style="background:#fde8e8;border:2px solid #d03b3b;padding:10px 12px;font:13px Arial,Helvetica,sans-serif;color:#0b0b0b;">
+<strong style="color:#d03b3b;">✕ DATA CHECKS FAILED — do not use these numbers without checking:</strong>
+{% if m.unreliable %}{{ m.unreliable|join(", ") }}.{% else %}see the checks table at the bottom.{% endif %}
+They are marked ✕ in the tables below.{% if m.stage_failures %} Failing pipeline stages: {{ m.stage_failures|join(", ") }}.{% endif %}
+</td></tr></table>
+{% elif m.status == "WARN" %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;"><tr><td style="background:#fff6dc;border:1px solid #fab219;padding:10px 12px;font:13px Arial,Helvetica,sans-serif;color:#0b0b0b;">
+<strong>⚠ Data health: WARN</strong> — {{ m.checks|length }} warning(s); numbers are usable but see the checks table at the bottom.
+</td></tr></table>
+{% else %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;"><tr><td style="background:#eaf6ea;border:1px solid #0ca30c;padding:10px 12px;font:13px Arial,Helvetica,sans-serif;color:#0b0b0b;">
+<strong style="color:#006300;">✓ Data health: OK</strong> — all checks passed (freshness, completeness, schema, validity, staleness, outliers, consistency).
+</td></tr></table>
+{% endif %}
+
+{# ---------------------------------------------------------------- headline moves #}
+{% for name, rows in m.sections.items() %}{% if rows %}
+<p style="{{ h2 }}">{{ name }}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="{{ thl }}">Series</th><th style="{{ th }}">Last</th><th style="{{ th }}">1d</th><th style="{{ th }}">1w</th><th style="{{ th }}">YTD</th><th style="{{ th }}">z</th><th style="{{ thl }}">As of</th></tr>
+{% for r in rows %}
+<tr{% if r.unreliable %} style="background:#fde8e8;"{% elif r.flag %} style="background:#fff6dc;"{% endif %}>
+<td style="{{ tdl }}">{% if r.unreliable %}<strong style="color:#d03b3b;">✕</strong> {% elif r.flag %}⚠ {% endif %}{{ r.name }}</td>
+{% if r.unreliable %}
+<td style="{{ td }}color:#52514e;text-decoration:line-through;">{{ r.value|level(r.units, r.series_id) }}</td><td colspan="4" style="{{ td }}text-align:left;color:#d03b3b;">unreliable — failed checks</td>
+{% else %}
+<td style="{{ td }}">{{ r.value|level(r.units, r.series_id) }}</td>
+<td style="{{ td }}color:{{ color(r.chg_1d) }};">{{ r.chg_1d|chg(r.mode) }}</td>
+<td style="{{ td }}color:{{ color(r.chg_1w) }};">{{ r.chg_1w|chg(r.mode) }}</td>
+<td style="{{ td }}color:{{ color(r.chg_ytd) }};">{{ r.chg_ytd|chg(r.mode) }}</td>
+<td style="{{ td }}{% if not isnan(r.z) and r.z|abs > 2 %}background:#fff1c7;font-weight:700;{% endif %}">{{ "—" if isnan(r.z) else "%+.1f"|format(r.z) }}</td>
+{% endif %}
+<td style="{{ tdl }}color:#898781;">{{ r.date if r.date != m.date else "" }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}{% endfor %}
+
+{# ---------------------------------------------------------------- movers #}
+{% if m.movers %}
+<p style="{{ h2 }}">Biggest movers by |z|</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="{{ thl }}">Series</th><th style="{{ th }}">1d</th><th style="{{ th }}">z vs 1y</th><th style="{{ thl }}">As of</th></tr>
+{% for r in m.movers %}<tr><td style="{{ tdl }}">{{ r.name }}</td><td style="{{ td }}color:{{ color(r.chg_1d) }};">{{ r.chg_1d|chg(r.mode) }}</td><td style="{{ td }}">{{ "%+.1f"|format(r.z) }}σ</td><td style="{{ tdl }}color:#898781;">{{ r.date }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{# ---------------------------------------------------------------- curve #}
+{% if m.curve %}
+<p style="{{ h2 }}">Treasury curve changes (bp)</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="{{ thl }}">Tenor / spread</th><th style="{{ th }}">Level</th><th style="{{ th }}">1d</th><th style="{{ th }}">1w</th><th style="{{ th }}">1m</th><th style="{{ thl }}">As of</th></tr>
+{% for c in m.curve %}<tr><td style="{{ tdl }}">{% if c.flag and c.flag.severity == "FAIL" %}<strong style="color:#d03b3b;">✕</strong> {% endif %}{{ c.name }}</td>
+{% if c.flag and c.flag.severity == "FAIL" %}<td colspan="4" style="{{ td }}text-align:left;color:#d03b3b;">unreliable — failed checks</td>{% else %}
+<td style="{{ td }}">{{ c.level }}</td><td style="{{ td }}color:{{ color(c.d1) }};">{{ c.d1|chg("bp") }}</td><td style="{{ td }}color:{{ color(c.w1) }};">{{ c.w1|chg("bp") }}</td><td style="{{ td }}color:{{ color(c.m1) }};">{{ c.m1|chg("bp") }}</td>{% endif %}
+<td style="{{ tdl }}color:#898781;">{{ c.date }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{# ---------------------------------------------------------------- portfolio #}
+{% if m.portfolio %}{% set p = m.portfolio %}
+<p style="{{ h2 }}">Portfolio P&amp;L <span style="border:1px solid #52514e;padding:0 4px;font-size:10px;">MOCK</span></p>
+<p style="font:13px Arial,Helvetica,sans-serif;margin:0 0 6px;color:#0b0b0b;">Total: <strong style="color:{{ color(p.totals.pnl_usd) }};">{{ p.totals.pnl_usd|usd }} USD</strong>{% if p.totals.n_a %} <span style="color:#d03b3b;">(excludes {{ p.totals.n_a }} position(s) n/a — data issue)</span>{% endif %} · gross {{ p.totals.gross_exposure_usd|usd }} · net {{ p.totals.net_exposure_usd|usd }} · DV01 {{ p.totals.dv01_usd|usd }}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="{{ thl }}">Book</th><th style="{{ th }}">P&amp;L (USD)</th><th style="{{ th }}">Gross</th><th style="{{ th }}">Net</th><th style="{{ th }}">n/a</th></tr>
+{% for b in p.by_book.to_dict("records") %}<tr><td style="{{ tdl }}">{{ b.book }}</td><td style="{{ td }}color:{{ color(b.pnl_usd) }};">{{ b.pnl_usd|usd }}</td><td style="{{ td }}">{{ b.gross_exposure_usd|usd }}</td><td style="{{ td }}">{{ b.net_exposure_usd|usd }}</td><td style="{{ td }}">{{ b.n_a or "" }}</td></tr>{% endfor %}
+</table>
+<p style="font:600 12px Arial,Helvetica,sans-serif;margin:10px 0 4px;color:#52514e;">Top contributors</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+{% for r in p.top %}<tr><td style="{{ tdl }}">{{ r.position_id }} · {{ r.note }}</td><td style="{{ td }}color:{{ color(r.pnl_usd) }};">{{ r.pnl_usd|usd }}</td></tr>{% endfor %}
+{% for r in p.na %}<tr><td style="{{ tdl }}">{{ r.position_id }} · {{ r.note }}</td><td style="{{ td }}color:#d03b3b;">n/a — data issue ({{ r.reason }})</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{# ---------------------------------------------------------------- checks #}
+<p style="{{ h2 }}">Data checks: WARN / FAIL</p>
+{% if m.checks|length %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><th style="{{ thl }}">Severity</th><th style="{{ thl }}">Check</th><th style="{{ thl }}">Message</th></tr>
+{% for c in m.checks.to_dict("records") %}<tr><td style="{{ tdl }}color:{{ '#d03b3b' if c.severity == 'FAIL' else '#9a6700' }};font-weight:700;">{{ "✕" if c.severity == "FAIL" else "⚠" }} {{ c.severity }}</td><td style="{{ tdl }}">{{ c.check }}</td><td style="{{ tdl }}white-space:normal;">{{ c.message }}</td></tr>{% endfor %}
+</table>
+{% else %}<p style="font:13px Arial,Helvetica,sans-serif;color:#52514e;margin:0;">None.</p>{% endif %}
+
+<p style="font:11px Arial,Helvetica,sans-serif;color:#898781;margin:20px 0 0;">Clean Tape — free end-of-day data (FRED, Yahoo Finance, Nasdaq, ECB). Portfolio is MOCK. Not investment advice. Charts and history: <a href="{{ m.site_url }}" style="color:#2a78d6;">{{ m.site_url }}</a></p>
+</td></tr></table>
+</td></tr></table>
+</body></html>

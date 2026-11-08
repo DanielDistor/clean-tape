@@ -77,3 +77,10 @@ One line of reasoning each. Newest at the bottom of each section.
 - **"Pipeline may be down" banner** when the headline date is > 1 NYSE session behind what the run time implies.
 - **FAIL-flagged series**: struck through with the reason in a tooltip, row tinted, excluded from "biggest moves", P&L shown as n/a. Derived series inherit their legs' flags.
 - **Per-series JSON** (~45 KB each since 2020, values rounded per unit) loaded on demand by the Markets page; built site ≈ 2.1 MB.
+
+## End-of-day report
+- **One data model (`ReportModel`) renders both HTML and Excel**, so the two can't disagree.
+- **Reports live in `state/reports/{date}/`** (i.e. on the `data` branch), so the 30-day archive survives across Actions runs; the site copies them in at build time.
+- **HTML is email-safe** (inline CSS, tables only, no JS/images) even though email delivery was dropped: the format stays ready for Outlook-style clients and prints cleanly. FAIL numbers appear only struck through, next to "unreliable — failed checks".
+- **Excel stores numbers, not strings**: yields as fractions with `0.00%`, bp changes as numbers with `+0.0`, dates as real dates, so an analyst can keep calculating on it.
+- **Credit & vol are split for Excel**: HY OAS goes on the Rates sheet, VIX on Equities, matching the requested sheet list.

@@ -332,6 +332,25 @@ def build_site_cmd(state_dir: StateOpt = None) -> None:
     )
 
 
+@app.command()
+def report(
+    date: Annotated[str, typer.Option(help="As-of date YYYY-MM-DD (default: latest)")] = "",
+    state_dir: StateOpt = None,
+) -> None:
+    """Write the end-of-day report (HTML + Excel) into state/reports/{date}/."""
+    from cleantape.report.build import default_report_date, write_report
+    from cleantape.transform.derive import series_catalog
+
+    cfg = _boot(state_dir)
+    st = _state(cfg)
+    day = _date(date) or default_report_date(st, series_catalog(cfg.universe))
+    if day is None:
+        typer.echo("no data in state; run `cleantape backfill` first", err=True)
+        raise typer.Exit(1)
+    paths = write_report(cfg, st, day, get_clock().now_utc(), compute_portfolio(cfg))
+    typer.echo(f"report: {paths['html']}\n        {paths['xlsx']}")
+
+
 def _not_yet(name: str) -> None:
     typer.echo(f"`{name}` is not implemented yet", err=True)
     raise typer.Exit(2)
