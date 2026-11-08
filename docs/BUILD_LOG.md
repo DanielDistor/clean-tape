@@ -96,3 +96,11 @@ Things that went wrong, how they were caught, and what I learned. Format: what h
 ### Pre-existing `origin` remote
 - **What happened:** `gh repo create clean-tape --source . --push` created the repo but couldn't add `origin`: the local clone already pointed at an empty repo `DanielDistor/cleantape`.
 - **Fix:** kept that remote under the name `cleantape-empty` (nothing deleted) and pointed `origin` at `clean-tape`, matching the brief and the configured site URL.
+
+## Design pass — terminal theme
+
+### New HTML + cached old CSS = an unstyled page
+- **What happened:** right after deploying the redesign, the live site rendered as a bare list in a real browser: new HTML, but the browser still had the *old* `style.css` (GitHub Pages sends `cache-control: max-age=600`), whose class names no longer matched.
+- **How detected:** the user's screenshot. My own check used a fresh headless browser with an empty cache, so it looked fine; `curl` showed the server already had the new CSS.
+- **Fix:** asset URLs carry a content hash (`static/style.css?v=<sha256[:10]>`), so any change to CSS/JS produces a new URL and can't be paired with stale cache. Test added.
+- **Lesson:** verify deploys the way users see them — with a warm cache — and version static assets from day one.

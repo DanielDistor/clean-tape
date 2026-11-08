@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="static/style.css?v={{ asset_v }}">
 {% block head %}{% endblock %}
 </head>
 {% set fkeys = {"overview": "F1", "rates": "F2", "markets": "F3", "portfolio": "F4", "health": "F5", "reports": "F6", "about": "F7"} %}
@@ -74,6 +74,6 @@
   <span class="grow">End-of-day free data · not investment advice · portfolio is <span class="mock">MOCK</span></span>
   <span><a href="about.html">About</a> · <a href="{{ repo_url }}">Source</a></span>
 </footer>
-<script src="static/app.js" defer></script>
+<script src="static/app.js?v={{ asset_v }}" defer></script>
 </body>
 </html>

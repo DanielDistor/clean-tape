@@ -124,6 +124,12 @@ def test_overview_has_mock_label_and_no_fail_banner(clean_site: Path) -> None:
     assert '<svg class="spark"' in html
 
 
+def test_static_assets_are_cache_busted(clean_site: Path) -> None:
+    html = (clean_site / "index.html").read_text()
+    assert re.search(r'href="static/style\.css\?v=[0-9a-f]{10}"', html)
+    assert re.search(r'src="static/app\.js\?v=[0-9a-f]{10}"', html)
+
+
 def test_reports_archive_links(clean_site: Path) -> None:
     html = (clean_site / "reports.html").read_text()
     assert 'href="reports/2026-11-06/eod_2026-11-06.html"' in html

@@ -372,6 +372,19 @@ def _clean(obj: Any) -> Any:
     return obj
 
 
+def asset_version(static_dir: Path) -> str:
+    """Short content hash of the static assets, appended as ?v= so browsers never pair new HTML
+    with a cached old stylesheet (GitHub Pages serves max-age=600)."""
+    import hashlib
+
+    h = hashlib.sha256()
+    for f in sorted(static_dir.rglob("*")):
+        if f.is_file():
+            h.update(f.name.encode())
+            h.update(f.read_bytes())
+    return h.hexdigest()[:10]
+
+
 def _dir_size(p: Path) -> int:
     return sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
 
@@ -434,6 +447,7 @@ def build_site(
         "stage_failures": stage_failures,
         "repo_url": cfg.settings.site.repo_url,
         "plotly": PLOTLY_CDN,
+        "asset_v": asset_version(HERE / "static"),
         "pages": PAGES,
         "tape": tape_items(cfg, derived, flags) if not derived.empty else [],
         "commands": sorted(
