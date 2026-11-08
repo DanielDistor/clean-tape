@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ title }}{% endblock %} · {{ title }}</title>
+<meta name="description" content="{{ tagline }}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpolyline points='1,12 5,8 8,10 15,3' fill='none' stroke='%232a78d6' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+{% block head %}{% endblock %}
+</head>
+<body data-page="{{ page }}">
+<header class="top">
+  <div class="brand"><a href="index.html">{{ title }}</a></div>
+  <div class="meta">
+    <span>As of <strong>{{ headline or "—" }}</strong></span>
+    <span class="muted">updated {{ updated }}</span>
+    <a class="light light-{{ status|lower }}" href="health.html" title="Data health: {{ status }}">
+      <span class="dot" aria-hidden="true"></span>{{ {"OK": "✓", "WARN": "⚠", "FAIL": "✕"}[status] }} {{ status }}</a>
+  </div>
+  <nav>
+    {% for p in pages %}
+    <a href="{{ 'index.html' if p == 'overview' else p ~ '.html' }}"{% if p == page %} aria-current="page"{% endif %}>{{ p|capitalize }}{% if p == 'portfolio' %} <span class="mock">MOCK</span>{% endif %}</a>
+    {% endfor %}
+  </nav>
+</header>
+{% if stale %}
+<div class="banner banner-fail" role="alert">✕ Pipeline may be down: latest data is {{ headline or "missing" }}, expected {{ expected }} ({{ behind }} business days behind).</div>
+{% endif %}
+{% if stage_failures %}
+<div class="banner banner-fail" role="alert">✕ Last run had failing stages: {{ stage_failures|join(", ") }}. Downstream numbers may be incomplete.</div>
+{% endif %}
+{% if status == "FAIL" %}
+<div class="banner banner-fail" role="alert">✕ Data checks FAILED. Unreliable: {% for s in fail_subjects %}<a href="health.html#{{ s }}">{{ names.get(s, s) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}. These numbers are struck through below — do not use them without checking.</div>
+{% elif status == "WARN" %}
+<div class="banner banner-warn">⚠ Data checks raised warnings for {{ warn_subjects|length }} item(s) — see <a href="health.html">Health</a>.</div>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  <p>{{ title }} — {{ tagline }} End-of-day free data; not investment advice. Portfolio figures are <span class="mock">MOCK</span>. <a href="about.html">About</a> · <a href="{{ repo_url }}">Source</a></p>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

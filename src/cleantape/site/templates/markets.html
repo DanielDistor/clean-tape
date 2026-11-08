@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Markets{% endblock %}
+{% block head %}<script src="{{ plotly }}" defer></script>{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="controls">
+    <label for="pick">Series</label>
+    <select id="pick">{% for sid, name in options %}<option value="{{ sid }}">{{ name }}</option>{% endfor %}</select>
+    <div class="ranges" role="group" aria-label="Date range">
+      {% for r in ["1M", "3M", "1Y", "YTD", "Max"] %}<button type="button" data-range="{{ r }}"{% if r == "1Y" %} aria-pressed="true"{% endif %}>{{ r }}</button>{% endfor %}
+    </div>
+  </div>
+  <h2 id="series-title">&nbsp;</h2>
+  <div class="chart" id="series-chart" role="img" aria-label="Selected series history"></div>
+</section>
+<section class="card">
+  <h2>Distribution of daily moves <span class="muted" id="hist-note"></span></h2>
+  <div class="chart small" id="moves-hist" role="img" aria-label="Histogram of daily moves with today's move marked"></div>
+</section>
+<noscript><p class="note">The Markets page needs JavaScript; the Overview works without it.</p></noscript>
+{% endblock %}
+{% block scripts %}<script src="static/app.js" defer></script>{% endblock %}

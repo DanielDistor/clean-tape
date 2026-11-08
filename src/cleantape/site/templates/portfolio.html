@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Portfolio (MOCK){% endblock %}
+{% block head %}<script src="{{ plotly }}" defer></script>{% endblock %}
+{% block content %}
+<p class="mockbox"><span class="mock">MOCK</span> This is an invented portfolio to demonstrate the P&amp;L logic. Positions are fictional; no real money is involved.</p>
+{% if not positions %}
+<p class="banner banner-fail">Portfolio could not be valued.</p>
+{% else %}
+<div class="tiles">
+  <div class="tile"><div class="tl">P&amp;L today (USD){% if totals.n_a %}, excl. n/a{% endif %}</div><div class="tv {{ totals.pnl_usd|sign }}">{{ totals.pnl_usd|usd }}</div>{% if totals.n_a %}<div class="bad">⚠ {{ totals.n_a }} position(s) n/a — data issue</div>{% endif %}</div>
+  <div class="tile"><div class="tl">Gross exposure</div><div class="tv">{{ totals.gross_exposure_usd|usd }}</div></div>
+  <div class="tile"><div class="tl">Net exposure</div><div class="tv">{{ totals.net_exposure_usd|usd }}</div></div>
+  <div class="tile"><div class="tl">Net DV01</div><div class="tv">{{ totals.dv01_usd|usd }}</div></div>
+</div>
+<div class="grid">
+<section class="card">
+  <h2>By book</h2>
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">Book</th><th>P&amp;L</th><th>Gross</th><th>Net</th><th>DV01</th><th>n/a</th></tr></thead>
+    <tbody>{% for b in by_book %}<tr><th class="l" scope="row">{{ b.book }}</th><td class="{{ b.pnl_usd|sign }}">{{ b.pnl_usd|usd }}</td><td>{{ b.gross_exposure_usd|usd }}</td><td>{{ b.net_exposure_usd|usd }}</td><td>{{ b.dv01_usd|usd }}</td><td>{{ b.n_a or "" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="card">
+  <h2>By asset class</h2>
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">Asset class</th><th>P&amp;L</th><th>Gross</th><th>Net</th></tr></thead>
+    <tbody>{% for b in by_asset_class %}<tr><th class="l" scope="row">{{ b.asset_class }}</th><td class="{{ b.pnl_usd|sign }}">{{ b.pnl_usd|usd }}</td><td>{{ b.gross_exposure_usd|usd }}</td><td>{{ b.net_exposure_usd|usd }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="card">
+  <h2>Shock scenarios <span class="muted">linear approximations</span></h2>
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">Scenario</th><th>P&amp;L (USD)</th></tr></thead>
+    <tbody>{% for s in shocks %}<tr><th class="l" scope="row">{{ s.scenario }}</th><td class="{{ s.pnl_usd|sign }}">{{ s.pnl_usd|usd }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="note">First-order: DV01 × bp, exposure × %, FX notional × %. No convexity, correlation or spillover.</p>
+</section>
+</div>
+<section class="card">
+  <h2>Positions</h2>
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">ID</th><th class="l">Instrument</th><th class="l">Book</th><th class="l">Kind</th><th>Size</th><th class="l">As of</th><th>Move</th><th>P&amp;L (USD)</th><th>Exposure</th><th class="l">Note</th></tr></thead>
+    <tbody>{% for p in positions %}
+    <tr{% if p.status != "ok" %} class="row-fail"{% endif %}>
+      <th class="l" scope="row">{{ p.position_id }}</th><td class="l">{{ names.get(p.instrument_id, p.instrument_id) }}</td><td class="l">{{ p.book }}</td><td class="l">{{ p.kind }}</td>
+      <td>{% if p.kind == "dv01" %}DV01 {{ p.dv01_usd|usd }}{% else %}{{ p.quantity|usd }}{% endif %}</td>
+      <td class="l asof">{{ p.as_of }}</td>
+      <td class="{{ p.move|sign }}">{% if p.move == p.move %}{{ "%+.2f"|format(p.move) }}{{ p.move_unit }}{% else %}—{% endif %}</td>
+      <td class="{{ p.pnl_usd|sign }}">{% if p.status == "ok" %}{{ p.pnl_usd|usd }}{% else %}<span class="bad" title="{{ p.reason }}">⚠ n/a — data issue</span>{% endif %}</td>
+      <td>{{ p.exposure_usd|usd }}</td><td class="l muted">{{ p.note }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="card">
+  <h2>Cumulative P&amp;L, last 30 sessions <span class="mock">MOCK</span></h2>
+  <div class="chart small" id="cum-pnl" role="img" aria-label="Cumulative mock portfolio P&L over the last 30 sessions"></div>
+</section>
+<script type="application/json" id="pnl-data">{{ json(history)|safe }}</script>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="static/app.js" defer></script>{% endblock %}

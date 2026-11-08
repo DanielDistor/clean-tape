@@ -1,0 +1,3 @@
+{% macro flagged(row, text) -%}
+{% if row.flag and row.flag.severity == "FAIL" %}<span class="bad" title="⚠ {{ row.flag.tooltip }}">⚠ <s>{{ text }}</s></span>{% elif row.flag %}<span class="warnv" title="⚠ {{ row.flag.tooltip }}">{{ text }} ⚠</span>{% else %}{{ text }}{% endif %}
+{%- endmacro %}

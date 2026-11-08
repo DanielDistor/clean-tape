@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Data health{% endblock %}
+{% block head %}<script src="{{ plotly }}" defer></script>{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Latest check results</h2>
+  <div class="controls" role="group" aria-label="Filter by severity">
+    {% for s in ["FAIL", "WARN", "OK"] %}<label class="chk"><input type="checkbox" data-sev="{{ s }}" {% if s != "OK" %}checked{% endif %}> <span class="sev sev-{{ s|lower }}">{{ {"OK": "✓", "WARN": "⚠", "FAIL": "✕"}[s] }} {{ s }}</span> {{ counts.get(s, 0) }}</label>{% endfor %}
+  </div>
+  {% if not results %}<p class="banner banner-fail">✕ No check results — checks have not run.</p>{% endif %}
+  <div class="scroll"><table id="checks">
+    <thead><tr><th class="l">Severity</th><th class="l">Check</th><th class="l">Subject</th><th class="l">As of</th><th class="l">Message</th><th class="l">Observed</th><th class="l">Expected</th></tr></thead>
+    <tbody>{% set seen = namespace(ids=[]) %}{% for r in results %}
+    <tr data-sev="{{ r.severity }}"{% if r.subject not in seen.ids %} id="{{ r.subject }}"{% set seen.ids = seen.ids + [r.subject] %}{% endif %}{% if r.severity == "OK" %} hidden{% endif %}>
+      <td class="l"><span class="sev sev-{{ r.severity|lower }}">{{ {"OK": "✓", "WARN": "⚠", "FAIL": "✕"}[r.severity] }} {{ r.severity }}</span></td>
+      <td class="l">{{ r.check }}</td><td class="l">{{ r.subject }}</td><td class="l asof">{{ r.as_of_date }}</td>
+      <td class="l">{{ r.message }}</td><td class="l muted">{{ r.observed }}</td><td class="l muted">{{ r.expected }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="card">
+  <h2>WARN / FAIL results per day <span class="muted">last 30 days, last run of each day</span></h2>
+  <div class="chart small" id="check-history" role="img" aria-label="Count of WARN and FAIL check results per day"></div>
+</section>
+<section class="card">
+  <h2>Recent drops (manifest)</h2>
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">Received (ET)</th><th class="l">Source</th><th class="l">Dataset</th><th>Rows</th><th>Bytes</th><th>ms</th><th class="l">Status</th><th class="l">Error</th></tr></thead>
+    <tbody>{% for m in manifest %}<tr{% if not m.ok %} class="row-fail"{% endif %}>
+      <td class="l">{{ m.received_et }}</td><td class="l">{{ m.source }}</td><td class="l">{{ m.dataset }}</td><td>{{ m.rows if m.rows == m.rows else "" }}</td><td>{{ "{:,}".format(m.bytes) }}</td><td>{{ "%.0f"|format(m.duration_ms) }}</td>
+      <td class="l">{% if m.ok %}{{ m.status }}{% else %}<span class="sev sev-fail">✕ error</span>{% endif %}</td><td class="l muted">{{ m.error or "" }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<script type="application/json" id="check-history-data">{{ json(history)|safe }}</script>
+{% endblock %}
+{% block scripts %}<script src="static/app.js" defer></script>{% endblock %}

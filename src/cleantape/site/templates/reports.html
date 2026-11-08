@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>End-of-day reports <span class="muted">last 30</span></h2>
+  {% if not reports %}<p class="note">No reports yet. The evening run produces one (<code>cleantape report</code>).</p>{% else %}
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Date</th><th class="l">Report</th><th class="l">Excel</th></tr></thead>
+    <tbody>{% for r in reports %}<tr><td class="l">{{ r.date }}</td><td class="l">{% if r.html %}<a href="{{ r.html }}">View HTML</a>{% endif %}</td><td class="l">{% if r.xlsx %}<a href="{{ r.xlsx }}" download>Download .xlsx</a>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

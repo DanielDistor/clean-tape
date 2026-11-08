@@ -5,10 +5,10 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-state/
-site/
-reports/
-logs/
+/state/
+/site/
+/reports/
+/logs/
 *.duckdb
 .DS_Store
 .playwright-mcp/

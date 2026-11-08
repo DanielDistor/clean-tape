@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Rates{% endblock %}
+{% block head %}<script src="{{ plotly }}" defer></script>{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>US Treasury curve</h2>
+  <div class="chart" id="curve" role="img" aria-label="Treasury yield curve today, one week ago and one month ago"></div>
+  {% if curve.curves %}
+  <div class="scroll"><table class="num">
+    <thead><tr><th class="l">Curve</th><th class="l">Date</th>{% for x in curve.x %}<th>{{ x }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for c in curve.curves %}<tr><th class="l" scope="row">{{ c.label }}</th><td class="l">{{ c.date }}</td>{% for y in c.y %}<td>{{ "%.2f"|format(y) }}%</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+<div class="grid">
+{% for sid, s in history.items() %}
+<section class="card">
+  <h2>{{ s.name }} <span class="muted">{{ "bp" if s.units == "bp_spread" else "%" }}</span></h2>
+  <div class="chart small" id="h-{{ sid }}" role="img" aria-label="{{ s.name }} history"></div>
+</section>
+{% endfor %}
+</div>
+<script type="application/json" id="curve-data">{{ json(curve)|safe }}</script>
+<script type="application/json" id="history-data">{{ json(history)|safe }}</script>
+{% endblock %}
+{% block scripts %}<script src="static/app.js" defer></script>{% endblock %}

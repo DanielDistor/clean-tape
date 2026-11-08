@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+<section class="card prose">
+  <h2>What this is</h2>
+  <p><strong>{{ title }}</strong>: {{ tagline }}</p>
+  <p><em>"The tape"</em> is trader slang for the market data feed — the stream of prices everyone reads. Clean Tape checks that feed before it reaches the screen.</p>
+  <p>It is a portfolio project that mirrors four internal tools an investment-technology team builds: a morning dashboard, a pipeline that turns vendor file drops into a clean queryable dataset, an automated end-of-day report that replaces a manual Excel workflow, and checks that flag when a feed is late, incomplete or doesn't add up.</p>
+  <h2>How it works</h2>
+  <ol>
+    <li>GitHub Actions runs twice each weekday (morning and evening New York time).</li>
+    <li>Each run downloads FRED, Yahoo Finance, Nasdaq (fallback) and ECB data, saves every response untouched, and records it in a manifest.</li>
+    <li>Responses are normalised into one table of observations (date, instrument, source, value). Missing values stay missing.</li>
+    <li>Data-quality checks run: freshness, completeness, schema, validity, stale values, outliers and cross-source consistency.</li>
+    <li>Spreads, changes, z-scores and the mock portfolio P&amp;L are computed, then this site and the end-of-day report are generated. Anything that failed a check is marked, never shown as if it were fine.</li>
+  </ol>
+  <h2>Data sources</h2>
+  <ul>
+    <li><strong>FRED</strong> (St. Louis Fed): Treasury yields, 10y breakeven, HY OAS, broad dollar index, WTI spot.</li>
+    <li><strong>Yahoo Finance</strong> via yfinance: equity ETFs, VIX, FX, front-month futures, commodity ETFs.</li>
+    <li><strong>Nasdaq</strong> quote history: fallback for US ETFs when Yahoo fails (unadjusted closes).</li>
+    <li><strong>ECB</strong> reference rates: independent second source for FX.</li>
+  </ul>
+  <h2>Limitations</h2>
+  <ul>
+    <li>End-of-day free data only; Yahoo is unofficial and can break or block cloud IPs.</li>
+    <li>The bond-market calendar approximates SIFMA (federal holidays + Good Friday); early closes are not modelled.</li>
+    <li>Futures are continuous front-month series, not roll-adjusted — display only.</li>
+    <li>P&amp;L and shocks are linear and simplified; the portfolio is <span class="mock">MOCK</span>.</li>
+    <li>GitHub's scheduler is not punctual; runs may land late in their window or be skipped.</li>
+  </ul>
+  <p><a href="{{ repo_url }}">Source code, architecture notes and build log on GitHub</a>.</p>
+</section>
+<section class="card">
+  <h2>Instrument universe</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">ID</th><th class="l">Name</th><th class="l">Source</th><th class="l">Symbol</th><th class="l">Calendar</th><th>Lag (bd)</th></tr></thead>
+    <tbody>{% for i in universe %}<tr><td class="l">{{ i.id }}</td><td class="l">{{ i.name }}</td><td class="l">{{ i.source }}</td><td class="l">{{ i.source_symbol }}</td><td class="l">{{ i.calendar }}</td><td>{{ i.expected_lag_business_days }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
