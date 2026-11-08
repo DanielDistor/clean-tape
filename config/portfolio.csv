@@ -1,0 +1,14 @@
+position_id,instrument_id,book,kind,quantity,dv01_usd,entry_date,note
+R01,DGS10,macro_rates,dv01,,25000,2025-06-02,MOCK long 10y duration (receiver)
+R02,DGS2,macro_rates,dv01,,-18000,2025-06-02,MOCK short 2y duration (steepener leg)
+R03,DGS30,macro_rates,dv01,,-6000,2025-09-15,MOCK short 30y duration
+E01,SPY,equity_ls,shares,20000,,2025-03-03,MOCK long S&P 500 beta
+E02,QQQ,equity_ls,shares,-9000,,2025-04-14,MOCK short Nasdaq 100 (tech hedge)
+E03,IWM,equity_ls,shares,25000,,2025-05-01,MOCK long small caps
+E04,EEM,equity_ls,shares,-60000,,2025-07-07,MOCK short EM equities
+F01,EURUSD,fx,fx_notional,10000000,,2025-02-10,MOCK long EUR 10m vs USD
+F02,USDJPY,fx,fx_notional,-6000000,,2025-08-20,MOCK short USD 6m vs JPY
+F03,GBPUSD,fx,fx_notional,-4000000,,2025-10-01,MOCK short GBP 4m vs USD
+C01,USO,commodities,shares,30000,,2025-06-16,MOCK long oil via ETF
+C02,GLD,commodities,shares,6000,,2025-01-06,MOCK long gold via ETF
+C03,UNG,commodities,shares,-40000,,2025-11-03,MOCK short nat gas via ETF

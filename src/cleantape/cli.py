@@ -248,6 +248,72 @@ def calibrate(
         typer.echo(f"wrote {path.relative_to(cfg.root)}")
 
 
+def compute_portfolio(cfg: Config, flagged: set[str] | None = None) -> dict:
+    """Value the MOCK portfolio from state. Returns positions, aggregates, shocks, history."""
+    from cleantape.portfolio import pnl
+
+    st = _state(cfg)
+    positions = pnl.load_positions(cfg.path(cfg.settings.paths.portfolio), cfg.universe)
+    derived = st.read("derived")
+    if flagged is None:
+        checks = st.read("check_results")
+        last = checks[checks["run_id"] == checks["run_id"].max()] if not checks.empty else checks
+        flagged = set(last[last["severity"] == "FAIL"]["subject"]) if not last.empty else set()
+    wide = pnl.wide_values(derived)
+    as_of = pnl.expected_dates(cfg, positions, get_clock().now_utc())
+    pos = pnl.value_positions(positions, wide, cfg.universe, as_of, flagged)
+    hist_dates = sorted(wide.index[wide.index <= max(as_of.values())])[-31:]
+    return {
+        "positions": pos,
+        "by_book": pnl.aggregate(pos, "book"),
+        "by_asset_class": pnl.aggregate(pos, "asset_class"),
+        "totals": pnl.totals(pos),
+        "shocks": pnl.shocks_table(pos, cfg.settings.shocks),
+        "history": pnl.pnl_history(positions, wide, cfg.universe, hist_dates[1:]),
+    }
+
+
+@app.command(name="pnl")
+def pnl_cmd(state_dir: StateOpt = None) -> None:
+    """Print MOCK portfolio P&L, exposures and shock scenarios."""
+    import pandas as pd
+
+    cfg = _boot(state_dir)
+    r = compute_portfolio(cfg)
+    fmt = {
+        "pnl_usd": "{:,.0f}".format,
+        "exposure_usd": "{:,.0f}".format,
+        "gross_exposure_usd": "{:,.0f}".format,
+        "net_exposure_usd": "{:,.0f}".format,
+        "dv01_usd": "{:,.0f}".format,
+        "move": "{:+.2f}".format,
+    }
+    with pd.option_context("display.width", 200, "display.max_columns", 20):
+        typer.echo("MOCK PORTFOLIO — P&L by position")
+        cols = [
+            "position_id",
+            "instrument_id",
+            "book",
+            "as_of",
+            "move",
+            "move_unit",
+            "pnl_usd",
+            "exposure_usd",
+            "status",
+        ]
+        typer.echo(r["positions"][cols].to_string(index=False, formatters=fmt))
+        typer.echo("\nby book")
+        typer.echo(r["by_book"].to_string(index=False, formatters=fmt))
+        t = r["totals"]
+        typer.echo(
+            f"\nTOTAL P&L {t['pnl_usd']:,.0f} USD  (n/a positions: {t['n_a']})  "
+            f"gross {t['gross_exposure_usd']:,.0f}  net {t['net_exposure_usd']:,.0f}  "
+            f"DV01 {t['dv01_usd']:,.0f}"
+        )
+        typer.echo("\nshocks (linear approximations)")
+        typer.echo(r["shocks"].to_string(index=False, formatters=fmt))
+
+
 def _not_yet(name: str) -> None:
     typer.echo(f"`{name}` is not implemented yet", err=True)
     raise typer.Exit(2)

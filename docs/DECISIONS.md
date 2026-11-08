@@ -61,3 +61,11 @@ One line of reasoning each. Newest at the bottom of each section.
   | CL=F vs WTI spot | 1458 | 0.44% | 5.82% | 7.08% | 8.73% | 10.62% |
 
   The FX cross-source tolerances are wide (~1.5%) because the ECB fixes at 14:15 CET while Yahoo's daily bar closes hours later; this check catches gross errors (a wrong pair, an un-inverted quote, a stale feed), not basis-point drift.
+
+## Portfolio (MOCK)
+- **Commodities are held via ETFs (USO, GLD, CPER, UNG), futures are display-only.** Yahoo's `CL=F` is a continuous front-month series: on roll days it jumps from one contract to the next, so `qty × ΔP` would book the contango/backwardation gap as P&L that no real position earned. ETFs roll internally, so their price change *is* the holder's return. `load_positions` rejects futures outright.
+- **Each position is valued on its own instrument's expected latest date** (calendar + lag), shown on every row. Forcing a single date would make rates P&L "n/a" every morning, because FRED yields lag equities by one session.
+- **n/a, not zero**: a position with a missing price on t or t−1, or any FAIL check on its instrument, shows "n/a — data issue"; book totals sum the known positions and report how many are n/a.
+- **DV01 positions have zero notional exposure** in gross/net; their risk is reported as DV01 instead.
+- **Shocks are first-order linear** (DV01 × bp, exposure × %, FX notional × %); no convexity, no correlation, no cross-asset spillover. USD ±3% moves USDxxx pairs up/down and xxxUSD pairs the other way.
+- **30-day cumulative P&L chart treats missing data as zero** for that day (it's a picture of the trend, not an official number), and records how many positions were n/a.

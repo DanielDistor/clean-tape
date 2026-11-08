@@ -49,6 +49,17 @@ checks:
     exclude_roll_days: true  # futures: drop dates where the roll proxy ETF is calm but futures jump
   consistency: {}
 
+# Linear shock scenarios for the MOCK portfolio (first-order approximations, labelled as such).
+shocks:
+  - {name: "Rates +50bp parallel", kind: rates_bp, size: 50}
+  - {name: "Rates -50bp parallel", kind: rates_bp, size: -50}
+  - {name: "Equities +5%", kind: asset_class_pct, target: equities, size: 5}
+  - {name: "Equities -5%", kind: asset_class_pct, target: equities, size: -5}
+  - {name: "Oil +10%", kind: instruments_pct, target: "USO", size: 10}
+  - {name: "Oil -10%", kind: instruments_pct, target: "USO", size: -10}
+  - {name: "USD +3%", kind: usd_pct, size: 3}
+  - {name: "USD -3%", kind: usd_pct, size: -3}
+
 site:
   title: Clean Tape
   base_url: https://danieldistor.github.io/clean-tape/

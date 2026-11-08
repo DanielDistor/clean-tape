@@ -1,6 +1,6 @@
 """Run every deliberately broken scenario through the real check runner and print what fires.
 
-    uv run python scripts/demo_checks.py
+uv run python scripts/demo_checks.py
 """
 
 from __future__ import annotations
@@ -10,10 +10,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 
-from broken_scenarios import SCENARIOS, clean_obs, context, run_scenario  # noqa: E402
+from broken_scenarios import SCENARIOS, clean_obs, context, run_scenario
 
-from cleantape.checks.runner import overall, run_checks  # noqa: E402
-from cleantape.config import load_config  # noqa: E402
+from cleantape.checks.runner import overall, run_checks
+from cleantape.config import load_config
 
 
 def main() -> None:
@@ -22,8 +22,9 @@ def main() -> None:
     print(f"{'clean real data':28s} overall={overall(base).name}")
     for sc in SCENARIOS:
         res = run_scenario(cfg, sc)
-        hit = res[(res["check"] == sc.check) & (res["subject"] == sc.subject)
-                  & (res["severity"] != "OK")]
+        hit = res[
+            (res["check"] == sc.check) & (res["subject"] == sc.subject) & (res["severity"] != "OK")
+        ]
         msg = hit["message"].iloc[0] if not hit.empty else "NOT CAUGHT"
         sev = hit["severity"].iloc[0] if not hit.empty else "-"
         print(f"{sc.name:28s} overall={overall(res).name:4s} {sc.check:12s} {sev:4s} {msg}")

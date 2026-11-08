@@ -215,6 +215,13 @@ class Checks(_Strict):
     consistency: dict[str, Tolerance] = {}
 
 
+class Shock(_Strict):
+    name: str
+    kind: Literal["rates_bp", "asset_class_pct", "instruments_pct", "usd_pct"]
+    size: float
+    target: str | None = None
+
+
 class Site(_Strict):
     title: str
     base_url: str
@@ -231,6 +238,7 @@ class Settings(_Strict):
     ingest: Ingest
     derive: Derive
     checks: Checks
+    shocks: list[Shock]
     site: Site
 
 
