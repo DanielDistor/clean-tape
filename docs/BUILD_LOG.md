@@ -51,3 +51,28 @@ Things that went wrong, how they were caught, and what I learned. Format: what h
 - **How detected:** the captured fixture was 179 bytes.
 - **Fix:** fallback always asks up to today (it does anyway); a 0-row answer is now a failed drop, not a silent success.
 - **Lesson:** HTTP 200 doesn't mean data — count rows.
+
+## Phase 5 — checks & calibration
+
+### Suspiciously large Yahoo-vs-ECB FX gaps: checked for an off-by-one date join
+- **What happened:** first calibration showed a 0.17% median gap between Yahoo EURUSD and the ECB fix. That's big enough to suspect Yahoo's FX "date" was shifted a day versus ECB's.
+- **How detected:** compared the median gap with Yahoo shifted −1, 0 and +1 days: 0.18%, 0.17%, 0.32%. Same-date is the best alignment, so the join is right.
+- **Fix:** none needed — the gap is fixing time (14:15 CET vs a later close). Documented, and the tolerance is calibrated rather than guessed.
+- **Lesson:** when a cross-check looks loose, test the join before widening the tolerance.
+
+### The 2020 oil crash broke the first WTI calibration
+- **What happened:** CL=F vs FRED WTI spot gave a p99.9 of 37% → FAIL tolerance 55%, which would never fire.
+- **How detected:** printed the worst pairs: 2020-03-26..30, spot at $14–16 vs front-month $20–22 — the Cushing storage crisis. Real, not bad data.
+- **Fix:** calibration window starts 2021-01-01 (configurable), plus a `min_price` filter for the negative-price days. Now WARN 8.7% / FAIL 10.6%.
+- **Lesson:** a calibration sample needs a regime choice; write the choice down.
+
+### Yahoo's quoted EURJPY is stale on holidays
+- **What happened:** the triangle audit flags Jan 1, Dec 25/26 and 2024-08-05/06: quoted EURJPY=X disagrees with EURUSD×USDJPY by up to 1.1%.
+- **How detected:** `cleantape check --audit`.
+- **Fix:** none in storage — it's what the source published. The triangle check exists exactly to flag it; calibration uses p99 so holidays don't loosen the everyday tolerance much.
+
+### A test assertion was wrong, not the code
+- **What happened:** the duplicate-key scenario "failed" because the test first asserted a clean-data baseline row for subject `observations`, which only exists when something is wrong.
+- **How detected:** the check returned the expected FAIL when called directly.
+- **Fix:** baseline assertion skipped for table-level subjects.
+- **Lesson:** debug the test as hard as the code.

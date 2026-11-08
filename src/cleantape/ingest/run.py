@@ -96,7 +96,7 @@ def run_ingest(
     drops, fallbacks = fetch_all(cfg, sources, start, end, clock)
     landed = land(state, drops, run_id, today)
     obs_new, parse_errors = to_observations(landed, cfg.universe, cfg.settings.nyse_close_buffer)
-    record(state, landed, run_id, today)
+    record(state, landed, run_id, today, (end - start).days)
     table, inserted, revised = upsert(state.read("observations"), obs_new)
     state.write("observations", table)
     state.prune_raw(today, cfg.settings.ingest.raw_retention_days)

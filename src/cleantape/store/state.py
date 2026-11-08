@@ -54,6 +54,7 @@ SCHEMAS: dict[str, pa.Schema] = {
             ("ok", pa.bool_()),
             ("status", pa.string()),
             ("deferred_rows", pa.int64()),
+            ("window_days", pa.int32()),
             ("error", pa.string()),
         ]
     ),

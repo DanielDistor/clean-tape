@@ -38,3 +38,26 @@ One line of reasoning each. Newest at the bottom of each section.
 - **z-score = (move − mean) / std of the previous 252 valid moves**, ddof=1, null below 120. Mean-adjusted because some series (e.g. 2022 front-end yields) trend.
 - **Spreads stored in bp, yields in %**; `change_mode: bp` multiplies yield differences by 100 but not spread differences.
 - **DuckDB is in-memory only**, with views over parquet built on each `cleantape query`; nothing to keep in sync.
+
+## Checks
+- **Severity = worst of all rows; zero rows = FAIL**; a check that crashes produces a FAIL row rather than disappearing.
+- **Freshness/completeness split**: freshness owns "the latest date is late"; completeness owns gaps *before* the latest date, failed drops and row counts (so one problem isn't reported three times).
+- **Failed drop = WARN, not FAIL**: a dead Yahoo may be covered by the Nasdaq fallback; whether the *data* is late is freshness's call.
+- **Row counts compared only against earlier drops with the same `window_days`**, so a backfill drop never skews the lookback median.
+- **Staleness is WARN-only**: ZIRP-era 3M bills sat at exactly 0.05% for 10 sessions (2021-07-15) and 2-decimal FRED yields legitimately repeat; it's a prompt to look, not proof of a dead feed.
+- **Futures outliers never exceed WARN**; if the roll-proxy ETF (USO/GLD/CPER/UNG) moved < 2σ the message says "possible futures roll".
+- **Calibrated tolerances live in generated `config/calibration.yaml`** (committed), merged into `settings.checks.consistency` at load. Regenerate with `cleantape calibrate`.
+- **Calibration method**: relative diff |a/b − 1| on same-date pairs from 2021-01-01; WARN = p99 × 1.5, FAIL = p99.9 × 1.5. 2020 excluded because Mar–Apr 2020 Cushing spot traded up to 42% below front-month CL (storage crisis) — real, but it would make the tolerance useless. Prices < $10 and futures roll-like days (|z| > 3 with roll proxy |z| < 2) are excluded.
+
+  | pair | n | median | p99 | p99.9 | WARN > | FAIL > |
+  |---|---|---|---|---|---|---|
+  | EURUSD vs ECB | 1499 | 0.17% | 0.97% | 1.70% | 1.46% | 2.54% |
+  | USDJPY vs ECB | 1499 | 0.21% | 1.51% | 2.42% | 2.26% | 3.63% |
+  | GBPUSD vs ECB | 1499 | 0.19% | 1.08% | 1.77% | 1.62% | 2.65% |
+  | AUDUSD vs ECB | 1499 | 0.27% | 1.32% | 2.19% | 1.98% | 3.29% |
+  | USDCAD vs ECB | 1499 | 0.13% | 0.76% | 1.20% | 1.14% | 1.79% |
+  | USDCHF vs ECB | 1499 | 0.19% | 1.02% | 1.97% | 1.52% | 2.95% |
+  | EURJPY vs EURUSD×USDJPY | 1521 | 0.007% | 0.067% | 0.60% | 0.10% | 0.90% |
+  | CL=F vs WTI spot | 1458 | 0.44% | 5.82% | 7.08% | 8.73% | 10.62% |
+
+  The FX cross-source tolerances are wide (~1.5%) because the ECB fixes at 14:15 CET while Yahoo's daily bar closes hours later; this check catches gross errors (a wrong pair, an un-inverted quote, a stale feed), not basis-point drift.

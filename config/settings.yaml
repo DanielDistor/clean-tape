@@ -33,12 +33,20 @@ derive:
 
 checks:
   freshness: {warn_business_days: 1, fail_business_days: 2}
-  completeness: {lookback_business_days: 10, row_count_tolerance: 0.5}
+  completeness: {lookback_business_days: 10, fail_missing_sessions: 3, row_count_tolerance: 0.5}
   staleness: {warn_sessions: 4}
   outliers: {warn_z: 4.0, fail_z: 6.0}
   spread_identity_tolerance_bp: 0.0001
-  # Cross-source tolerances, calibrated from history by `cleantape calibrate`
-  # (method + numbers recorded in docs/DECISIONS.md). Units: relative |diff| (fraction).
+  # Cross-source / triangle tolerances are calibrated from history by `cleantape calibrate`
+  # and written to config/calibration.yaml (merged in here at load time).
+  # Method: tolerance = quantile(|a/b - 1|) x safety_factor, over all common dates.
+  calibration:
+    start: 2021-01-01        # excludes the Mar–Apr 2020 WTI storage crisis (spot 40% below front-month)
+    warn_quantile: 0.99
+    fail_quantile: 0.999
+    safety_factor: 1.5
+    min_price: 10.0          # skip dates where the reference price is below this (Apr 2020 WTI)
+    exclude_roll_days: true  # futures: drop dates where the roll proxy ETF is calm but futures jump
   consistency: {}
 
 site:

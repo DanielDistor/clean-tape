@@ -121,16 +121,16 @@ instruments:
   - {id: CL_F, name: "WTI crude (front)", asset_class: commodities, source: yahoo, source_symbol: "CL=F",
      units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
      bounds: {min: -50.0, max: 250.0}, display_group: commodities, display_order: 10,
-     is_future: true, cross_check: {against: WTI_SPOT, kind: cross_source}}
+     is_future: true, roll_proxy: USO, cross_check: {against: WTI_SPOT, kind: cross_source}}
   - {id: GC_F, name: "Gold (front)", asset_class: commodities, source: yahoo, source_symbol: "GC=F",
      units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
-     bounds: {min: 500.0, max: 20000.0}, display_group: commodities, display_order: 20, is_future: true}
+     bounds: {min: 500.0, max: 20000.0}, display_group: commodities, display_order: 20, is_future: true, roll_proxy: GLD}
   - {id: HG_F, name: "Copper (front)", asset_class: commodities, source: yahoo, source_symbol: "HG=F",
      units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
-     bounds: {min: 1.0, max: 25.0}, display_group: commodities, display_order: 30, is_future: true}
+     bounds: {min: 1.0, max: 25.0}, display_group: commodities, display_order: 30, is_future: true, roll_proxy: CPER}
   - {id: NG_F, name: "Nat gas (front)", asset_class: commodities, source: yahoo, source_symbol: "NG=F",
      units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
-     bounds: {min: 0.5, max: 30.0}, display_group: commodities, display_order: 40, is_future: true}
+     bounds: {min: 0.5, max: 30.0}, display_group: commodities, display_order: 40, is_future: true, roll_proxy: UNG}
   - {id: WTI_SPOT, name: "WTI spot (EIA via FRED)", asset_class: commodities, source: fred, source_symbol: DCOILWTICO,
      units: price, change_mode: pct, calendar: us_bond, expected_lag_business_days: 5,
      bounds: {min: -50.0, max: 250.0}, display_group: commodities, display_order: 50}

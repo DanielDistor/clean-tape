@@ -90,8 +90,11 @@ def land(state: State, drops: list[RawDrop], run_id: str, as_of: dt.date) -> lis
     return landed
 
 
-def record(state: State, landed: list[Landed], run_id: str, as_of: dt.date) -> None:
-    """Append one manifest row per landed drop."""
+def record(
+    state: State, landed: list[Landed], run_id: str, as_of: dt.date, window_days: int
+) -> None:
+    """Append one manifest row per landed drop. ``window_days`` = requested date span, so
+    row-count checks compare like with like (a backfill drop vs a 10-day lookback)."""
     rows = []
     for ld in landed:
         d, status, path = ld.drop, ld.status, ld.path
@@ -111,6 +114,7 @@ def record(state: State, landed: list[Landed], run_id: str, as_of: dt.date) -> N
                 "ok": d.ok,
                 "status": status,
                 "deferred_rows": ld.deferred,
+                "window_days": window_days,
                 "error": d.error,
             }
         )
