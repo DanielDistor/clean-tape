@@ -7,10 +7,10 @@
   <div class="tile"><div class="tl">✓ Passed</div><div class="tv sev-ok">{{ counts.get("OK", 0) }}</div></div>
   <div class="tile"><div class="tl">⚠ Warnings</div><div class="tv sev-warn">{{ counts.get("WARN", 0) }}</div></div>
   <div class="tile"><div class="tl">✕ Failures</div><div class="tv sev-fail">{{ counts.get("FAIL", 0) }}</div></div>
-  <div class="tile"><div class="tl">Checks</div><div class="tv">7</div><div class="note" style="margin:0">freshness · completeness · schema · validity · staleness · outliers · consistency</div></div>
+  <div class="tile"><div class="tl">Engine checks</div><div class="tv">7</div><div class="note" style="margin:0">freshness · completeness · schema · validity · staleness · outliers · consistency</div></div>
 </div>
 <section class="card">
-  <h2>Latest check results</h2>
+  <h2>Check engine — latest results <span class="muted">7 checks on every series, every run · <a href="about.html">how it works</a></span></h2>
   <div class="controls" role="group" aria-label="Filter by severity">
     {% for s in ["FAIL", "WARN", "OK"] %}<label class="chk"><input type="checkbox" data-sev="{{ s }}" {% if s != "OK" %}checked{% endif %}> <span class="sev sev-{{ s|lower }}">{{ {"OK": "✓", "WARN": "⚠", "FAIL": "✕"}[s] }} {{ s }}</span> {{ counts.get(s, 0) }}</label>{% endfor %}
   </div>

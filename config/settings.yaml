@@ -62,6 +62,7 @@ shocks:
 
 site:
   title: Clean Tape
+  tagline: "A morning markets dashboard and end-of-day report covering US rates, credit, equities, FX and commodities, where every number passes a 7-check data-quality engine before anyone sees it."
   base_url: https://danieldistor.github.io/clean-tape/
   repo_url: https://github.com/DanielDistor/clean-tape
   stale_after_business_days: 1

@@ -478,8 +478,7 @@ def build_site(
 
     common = {
         "title": cfg.settings.site.title,
-        "tagline": "A morning markets dashboard and end-of-day report that checks the data "
-        "before anyone sees it.",
+        "tagline": cfg.settings.site.tagline,
         "headline": headline,
         "updated": fmt_ny(now_utc),
         "updated_full": fmt_ny(now_utc, True),
@@ -576,7 +575,11 @@ def build_site(
     }
 
     ctx["reports"] = {"reports": copy_reports(state, out, cfg.settings.site.report_archive_days)}
-    ctx["about"] = {"universe": cfg.universe.instruments, "spreads": cfg.universe.spreads}
+    ctx["about"] = {
+        "universe": cfg.universe.instruments,
+        "coverage": coverage(cfg),
+        "engine": engine_rows(cfg),
+    }
 
     for page in PAGES:
         html = env.get_template(f"{page}.html").render(page=page, **common, **ctx[page], json=_json)
@@ -586,6 +589,106 @@ def build_site(
     size = _dir_size(out)
     log.info("site built: %s (%.1f KB, %d series files)", out, size / 1024, len(sj))
     return {"dir": out, "bytes": size, "status": status, "headline": headline, "stale": stale}
+
+
+ASSET_LABELS = {
+    "rates": "US rates",
+    "credit": "Credit",
+    "vol": "Volatility",
+    "equities": "Equities",
+    "fx": "FX",
+    "commodities": "Commodities",
+}
+SOURCE_LABELS = {"fred": "FRED", "yahoo": "Yahoo Finance", "nasdaq": "Nasdaq", "ecb": "ECB"}
+
+
+def coverage(cfg: Config) -> list[dict[str, Any]]:
+    """What's on the tape, grouped by asset class (displayed series + cross-check sources)."""
+    out = []
+    for ac, label in ASSET_LABELS.items():
+        shown = [i for i in cfg.universe.instruments if i.asset_class == ac and i.display_group]
+        checks = [
+            i for i in cfg.universe.instruments if i.asset_class == ac and not i.display_group
+        ]
+        names = [i.name for i in shown]
+        if ac == "rates":
+            names += [f"{s.name} spread" for s in cfg.universe.spreads]
+        if not names:
+            continue
+        sources = sorted(
+            {SOURCE_LABELS[i.source] for i in shown}
+            | {SOURCE_LABELS[i.fallback.source] for i in shown if i.fallback}
+        )
+        names_by_id = {
+            **{i.id: i.name for i in cfg.universe.instruments},
+            **{c.id: "EUR/USD × USD/JPY" for c in cfg.universe.crosses},
+        }
+        second = [
+            f"{i.name} vs {names_by_id[i.cross_check.against]}" for i in shown if i.cross_check
+        ]
+        if ac == "rates" and cfg.universe.spreads:
+            second.append("each spread = long leg − short leg")
+        del checks  # second sources (ECB, EIA spot) are named inside the pairs above
+        out.append({"label": label, "names": names, "sources": sources, "second": second})
+    return out
+
+
+def engine_rows(cfg: Config) -> list[dict[str, str]]:
+    """The 7-check engine, with thresholds read from the live config."""
+    c = cfg.settings.checks
+    fx = [v for k, v in c.consistency.items() if k not in ("EURJPY", "CL_F")]
+    fx_rng = (
+        f"{min(t.warn for t in fx):.1%}–{max(t.warn for t in fx):.1%}" if fx else "uncalibrated"
+    )
+    tri = c.consistency.get("EURJPY")
+    return [
+        {
+            "check": "Freshness",
+            "question": "Is the latest value as recent as the market calendar "
+            "and the source's publishing delay say it should be?",
+            "rule": f"{c.freshness.warn_business_days} business day behind = WARN, "
+            f"≥{c.freshness.fail_business_days} = FAIL",
+        },
+        {
+            "check": "Completeness",
+            "question": "Are trading days missing, did a download fail, "
+            "did a file arrive with far fewer rows than usual?",
+            "rule": f"gaps in last {c.completeness.lookback_business_days} sessions "
+            f"(≥{c.completeness.fail_missing_sessions} = FAIL); rows ±"
+            f"{c.completeness.row_count_tolerance:.0%} vs median = WARN",
+        },
+        {
+            "check": "Schema",
+            "question": "Does each raw vendor file still have the columns and "
+            "types the parser expects?",
+            "rule": "any missing column / non-numeric value = FAIL",
+        },
+        {
+            "check": "Validity",
+            "question": "Is the number physically plausible, with no nulls on "
+            "trading days and no duplicate records?",
+            "rule": "outside per-instrument bounds or duplicate = FAIL; null = WARN",
+        },
+        {
+            "check": "Staleness",
+            "question": "Has a value stopped changing (a dead feed)?",
+            "rule": f"same value ≥{c.staleness.warn_sessions} sessions = WARN",
+        },
+        {
+            "check": "Outliers",
+            "question": "Is today's move abnormal for this series, measured "
+            "against its own last year of daily moves?",
+            "rule": f"|z| > {c.outliers.warn_z:g} = WARN, > {c.outliers.fail_z:g} = FAIL "
+            "(futures capped at WARN with a roll hint)",
+        },
+        {
+            "check": "Consistency",
+            "question": "Do independent sources agree, and do derived numbers add up?",
+            "rule": f"Yahoo vs ECB FX: WARN > {fx_rng}; EUR/JPY triangle: WARN > {tri.warn:.2%}"
+            if tri
+            else "uncalibrated",
+        },
+    ]
 
 
 def copy_reports(state: State, out: Path, keep: int) -> list[dict[str, Any]]:

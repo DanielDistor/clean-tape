@@ -1,7 +1,7 @@
 [project]
 name = "cleantape"
 version = "0.1.0"
-description = "A morning markets dashboard and end-of-day report that checks the data before anyone sees it."
+description = "A morning markets dashboard and end-of-day report covering US rates, credit, equities, FX and commodities, where every number passes a 7-check data-quality engine before anyone sees it."
 authors = [{ name = "DanielDistor" }]
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

@@ -68,10 +68,11 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="statusline">
+  <span><b>TAPE</b> RATES · CREDIT · EQUITIES · FX · COMMODITIES</span>
   <span><b>SRC</b> FRED · YAHOO · NASDAQ · ECB</span>
-  <span><b>CHECKS</b> <span class="sev-ok">{{ check_counts.get("OK", 0) }} OK</span> · <span class="sev-warn">{{ check_counts.get("WARN", 0) }} WARN</span> · <span class="sev-fail">{{ check_counts.get("FAIL", 0) }} FAIL</span></span>
+  <span><b>ENGINE</b> 7 checks: <span class="sev-ok">{{ check_counts.get("OK", 0) }} OK</span> · <span class="sev-warn">{{ check_counts.get("WARN", 0) }} WARN</span> · <span class="sev-fail">{{ check_counts.get("FAIL", 0) }} FAIL</span></span>
   <span><b>BUILD</b> {{ updated_full }}</span>
-  <span class="grow">End-of-day free data · not investment advice · portfolio is <span class="mock">MOCK</span></span>
+  <span class="grow">End-of-day free data · not advice · portfolio <span class="mock">MOCK</span></span>
   <span><a href="about.html">About</a> · <a href="{{ repo_url }}">Source</a></span>
 </footer>
 <script src="static/app.js?v={{ asset_v }}" defer></script>

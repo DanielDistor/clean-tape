@@ -2,6 +2,7 @@
 
 UV ?= uv
 START ?= 2020-01-01
+PORT ?= 8000
 
 setup:            ## install pinned dependencies into .venv
 	$(UV) sync
@@ -21,8 +22,11 @@ report:
 site:
 	$(UV) run cleantape build-site
 
-serve:            ## serve the built site at http://localhost:8000
-	$(UV) run python -m http.server -d site 8000
+serve:            ## serve the built site at http://localhost:$(PORT) (e.g. make serve PORT=8001)
+	@if lsof -nP -iTCP:$(PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
+	  echo "port $(PORT) is already in use (another server?) — try: make serve PORT=8001"; exit 1; fi
+	@echo "Clean Tape → http://localhost:$(PORT)/"
+	$(UV) run python -m http.server -d site $(PORT)
 
 test:
 	$(UV) run pytest

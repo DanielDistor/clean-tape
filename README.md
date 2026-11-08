@@ -1,6 +1,6 @@
 # Clean Tape
 
-**A morning markets dashboard and end-of-day report that checks the data before anyone sees it.**
+**A morning markets dashboard and end-of-day report covering US rates, credit, equities, FX and commodities, where every number passes a 7-check data-quality engine before anyone sees it.**
 
 [![daily](https://github.com/DanielDistor/clean-tape/actions/workflows/daily.yml/badge.svg)](https://github.com/DanielDistor/clean-tape/actions/workflows/daily.yml)
 [![ci](https://github.com/DanielDistor/clean-tape/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielDistor/clean-tape/actions/workflows/ci.yml)
@@ -42,6 +42,19 @@ flowchart LR
 
 Each run (morning and evening, New York time) pulls the state from an orphan `data` branch and fetches every source. Responses are saved untouched, normalised, then derived values and checks are computed. The MOCK portfolio is valued, the report is written (evening only), and the site is built. The state is pushed back as a single commit, so history never grows, and the site is deployed to Pages. Dates, calendars, publication lags and DST-proof scheduling are covered in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
+## What's on the tape
+
+| Asset class | Series on the dashboard | Source | Independent cross-check |
+|---|---|---|---|
+| US rates | UST 3M, 2Y, 5Y, 10Y, 30Y · 10Y breakeven · 2s10s, 5s30s, 3m10y spreads | FRED | spreads must equal their legs |
+| Credit | US high-yield OAS | FRED | — |
+| Volatility | VIX | Yahoo Finance | — |
+| Equities | S&P 500 (SPY), Nasdaq 100 (QQQ), Russell 2000 (IWM), EAFE (EFA), EM (EEM) | Yahoo Finance, Nasdaq fallback | — |
+| FX | EUR/USD, USD/JPY, GBP/USD, AUD/USD, USD/CAD, USD/CHF, EUR/JPY, Fed broad dollar index | Yahoo Finance, FRED | ECB reference rates for all 7 pairs; EUR/JPY vs EUR/USD × USD/JPY |
+| Commodities | WTI, gold, copper, nat gas front-month futures · USO, GLD, CPER, UNG ETFs · WTI spot | Yahoo Finance, FRED | WTI futures vs EIA spot |
+
+Plus the reference data the engine relies on: four trading calendars (NYSE, US bond market, ECB TARGET, FX), per-source publication lags, and validity bounds for every instrument, all in `config/`. A MOCK 13-position portfolio across rates, equities, FX and commodities is valued on top.
+
 ## Data sources
 
 | Source | Provides | Publication lag (measured) | Known quirks |
@@ -51,7 +64,9 @@ Each run (morning and evening, New York time) pulls the state from an orphan `da
 | [Nasdaq](https://www.nasdaq.com) quote history | Fallback for the US ETFs when Yahoo fails | same evening | Unadjusted closes; returns nothing unless the window ends recently. Replaces Stooq, which now serves a JavaScript challenge |
 | [ECB Data Portal](https://data.ecb.europa.eu) | EUR reference rates for USD, JPY, GBP, CHF, CAD, AUD | same day, ~16:00 CET | Quoted as foreign currency per 1 EUR; converted to Yahoo conventions (USDJPY = JPY/EUR ÷ USD/EUR, …) |
 
-## Data-quality checks
+## The check engine
+
+Seven checks run on every series on every pull, before anything reaches the site or the report (`src/cleantape/checks/`). Each rates every series OK / WARN / FAIL; the run takes the worst. A FAIL strikes the number through, keeps it out of P&L and rankings, puts a red box on the report and fails the GitHub run. Empty input or a crashed check is itself a FAIL.
 
 | Check | Catches | Thresholds | How they were set |
 |---|---|---|---|

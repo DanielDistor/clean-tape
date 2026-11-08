@@ -224,6 +224,7 @@ class Shock(_Strict):
 
 class Site(_Strict):
     title: str
+    tagline: str
     base_url: str
     repo_url: str
     stale_after_business_days: int

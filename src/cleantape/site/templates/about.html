@@ -5,22 +5,39 @@
   <h2>What this is</h2>
   <p><strong>{{ title }}</strong>: {{ tagline }}</p>
   <p><em>"The tape"</em> is trader slang for the market data feed — the stream of prices everyone reads. Clean Tape checks that feed before it reaches the screen.</p>
-  <p>It is a portfolio project that mirrors four internal tools an investment-technology team builds: a morning dashboard, a pipeline that turns vendor file drops into a clean queryable dataset, an automated end-of-day report that replaces a manual Excel workflow, and checks that flag when a feed is late, incomplete or doesn't add up.</p>
-  <h2>How it works</h2>
+  <p>It mirrors four internal tools an investment-technology team builds: a morning dashboard, a pipeline that turns vendor file drops into a clean queryable dataset, an automated end-of-day report that replaces a manual Excel workflow, and an engine that flags when a feed is late, incomplete or doesn't add up.</p>
+</section>
+
+<section class="card">
+  <h2>What's on the tape <span class="muted">{{ coverage|map(attribute="names")|map("length")|sum }} series · 4 sources</span></h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Asset class</th><th class="l">Series on the dashboard</th><th class="l">Source</th><th class="l">Independent cross-check</th></tr></thead>
+    <tbody>{% for c in coverage %}
+    <tr><th class="l" scope="row">{{ c.label }}</th><td class="l wrap">{{ c.names|join(" · ") }}</td><td class="l">{{ c.sources|join(", ") }}</td><td class="l wrap muted">{{ c.second|join(" · ") or "—" }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="note">Plus reference data the engine needs: NYSE, US bond-market (SIFMA-style), ECB TARGET and FX trading calendars, per-source publication lags, and validity bounds per instrument — all in <code>config/</code>. Portfolio positions are <span class="mock">MOCK</span>.</p>
+</section>
+
+<section class="card">
+  <h2>The check engine <span class="muted">7 checks · runs on every pull, before anything is shown</span></h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Check</th><th class="l">Question it answers</th><th class="l">Rule (live config)</th></tr></thead>
+    <tbody>{% for e in engine %}
+    <tr><th class="l" scope="row" style="color:var(--amber)">{{ e.check }}</th><td class="l wrap">{{ e.question }}</td><td class="l wrap muted">{{ e.rule }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="note">Each check rates every series OK, WARN or FAIL; the run takes the worst. A FAIL strikes the number through on this site, removes it from the P&amp;L and the top movers, puts a red box at the top of the end-of-day report, and turns the GitHub Actions run red. An empty input or a crashed check is itself a FAIL — the engine never passes silently. Cross-source tolerances are calibrated from 2021→today history (p99 / p99.9 × 1.5). Live results: <a href="health.html">Health</a>.</p>
+</section>
+
+<section class="card prose">
+  <h2>How a run works</h2>
   <ol>
-    <li>GitHub Actions runs twice each weekday (morning and evening New York time).</li>
-    <li>Each run downloads FRED, Yahoo Finance, Nasdaq (fallback) and ECB data, saves every response untouched, and records it in a manifest.</li>
-    <li>Responses are normalised into one table of observations (date, instrument, source, value). Missing values stay missing.</li>
-    <li>Data-quality checks run: freshness, completeness, schema, validity, stale values, outliers and cross-source consistency.</li>
-    <li>Spreads, changes, z-scores and the mock portfolio P&amp;L are computed, then this site and the end-of-day report are generated. Anything that failed a check is marked, never shown as if it were fine.</li>
+    <li><strong>Pull</strong> — twice each weekday (morning and evening New York time) GitHub Actions fetches FRED, Yahoo Finance (Nasdaq as fallback) and ECB data and saves every response untouched with a manifest entry.</li>
+    <li><strong>Clean</strong> — responses are normalised into one table of observations (date, instrument, source, value). Missing values stay missing; unfinished intraday bars are never stored.</li>
+    <li><strong>Check</strong> — the 7-check engine above runs.</li>
+    <li><strong>Publish</strong> — spreads, changes, z-scores and the mock P&amp;L are computed, then this site and the end-of-day report (HTML + Excel) are generated with every check result attached.</li>
   </ol>
-  <h2>Data sources</h2>
-  <ul>
-    <li><strong>FRED</strong> (St. Louis Fed): Treasury yields, 10y breakeven, HY OAS, broad dollar index, WTI spot.</li>
-    <li><strong>Yahoo Finance</strong> via yfinance: equity ETFs, VIX, FX, front-month futures, commodity ETFs.</li>
-    <li><strong>Nasdaq</strong> quote history: fallback for US ETFs when Yahoo fails (unadjusted closes).</li>
-    <li><strong>ECB</strong> reference rates: independent second source for FX.</li>
-  </ul>
   <h2>Limitations</h2>
   <ul>
     <li>End-of-day free data only; Yahoo is unofficial and can break or block cloud IPs.</li>

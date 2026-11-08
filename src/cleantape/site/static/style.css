@@ -274,3 +274,4 @@ body.fit main > .note.foot { display: none; }  /* the footnote moves into a tool
 
 body.fit.compact main .hs { display: none; }
 body.fit.compact main .hero-tile { min-height: 0; padding-bottom: .6em; }
+td.wrap { white-space: normal; min-width: 18em; line-height: 1.5; }
