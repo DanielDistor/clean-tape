@@ -27,7 +27,7 @@
     <tr><th class="l" scope="row" style="color:var(--amber)">{{ e.check }}</th><td class="l wrap">{{ e.question }}</td><td class="l wrap muted">{{ e.rule }}</td></tr>
     {% endfor %}</tbody>
   </table></div>
-  <p class="note">Each check rates every series OK, WARN or FAIL; the run takes the worst. A FAIL strikes the number through on this site, removes it from the P&amp;L and the top movers, puts a red box at the top of the end-of-day report, and turns the GitHub Actions run red. An empty input or a crashed check is itself a FAIL — the engine never passes silently. Cross-source tolerances are calibrated from 2021→today history (p99 / p99.9 × 1.5). Live results: <a href="health.html">Health</a>.</p>
+  <p class="note">Each check rates every series OK, WARN or FAIL; the run takes the worst. A FAIL strikes the number through on this site, removes it from the P&amp;L and the top movers, puts a red box at the top of the end-of-day report, and turns the GitHub Actions run red. An empty input or a crashed check is itself a FAIL — the engine never passes silently. Cross-source tolerances are calibrated from 2021→today history (p99 / p99.9 × 1.5). Live results: <a href="health.html">Health</a>.{% if has_demo %} To see a failure, open the <a href="demo/index.html">failure demo</a>: the same dashboard with a deliberately broken 10Y yield.{% endif %}</p>
 </section>
 
 <section class="card prose">

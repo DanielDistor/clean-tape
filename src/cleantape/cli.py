@@ -325,7 +325,8 @@ def build_site_cmd(state_dir: StateOpt = None) -> None:
     except Exception as e:  # the site must still build and show the problem
         log.exception("portfolio valuation failed: %s", e)
         portfolio = None
-    info = build_site(cfg, _state(cfg), get_clock().now_utc(), portfolio)
+    now = get_clock().now_utc()
+    info = build_site(cfg, _state(cfg), now, portfolio)
     typer.echo(
         f"site: {info['dir']}  {info['bytes'] / 1024:.0f} KB  status={info['status']} "
         f"headline={info['headline']} stale={info['stale']}"

@@ -53,6 +53,9 @@
   </div>
   {% endif %}
 </header>
+{% if demo %}
+<div class="banner banner-demo" role="note"><strong>DEMO</strong> This copy of the dashboard has one deliberately broken number: the latest {{ demo.series }} yield was set to {{ demo.value }}, a classic decimal-point error. Everything else is real data. Click around to see how the check engine handles it. <a href="../index.html">Back to the live dashboard →</a></div>
+{% endif %}
 {% if stale %}
 <div class="banner banner-fail" role="alert"><strong>✕ PIPELINE MAY BE DOWN</strong> latest data {{ headline or "missing" }}, expected {{ expected }} ({{ behind }} business days behind).</div>
 {% endif %}

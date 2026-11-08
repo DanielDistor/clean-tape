@@ -5,7 +5,7 @@ A morning markets dashboard and end-of-day report for US rates, credit, equities
 [![daily](https://github.com/DanielDistor/clean-tape/actions/workflows/daily.yml/badge.svg)](https://github.com/DanielDistor/clean-tape/actions/workflows/daily.yml)
 [![ci](https://github.com/DanielDistor/clean-tape/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielDistor/clean-tape/actions/workflows/ci.yml)
 
-**Live: [danieldistor.github.io/clean-tape](https://danieldistor.github.io/clean-tape/)**
+**Live: [danieldistor.github.io/clean-tape](https://danieldistor.github.io/clean-tape/)** · **Failure demo: [/demo](https://danieldistor.github.io/clean-tape/demo/)**
 
 ![Overview](docs/img/overview.png)
 
@@ -48,7 +48,7 @@ The consistency tolerances come from data. I measured the gap between each pair 
 
 A FAIL does four things. It strikes the number through on the site, it takes the position out of the P&L, it puts a red box at the top of the end-of-day report and it turns the GitHub Actions run red so I get an email. An empty input or a check that crashes counts as a FAIL too.
 
-Here is the dashboard after I fed it a 10-year yield of 250%:
+Here is the dashboard after I fed it a 10-year yield of 250%. You can click through this yourself at [/demo](https://danieldistor.github.io/clean-tape/demo/), which is rebuilt from the real data on every run with that one number broken.
 
 ![A failed check on the overview](docs/img/fail.png)
 

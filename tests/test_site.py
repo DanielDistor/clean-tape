@@ -201,3 +201,21 @@ def test_check_history_groups_by_new_york_date() -> None:
     h = check_history(checks)
     assert h["d"] == ["2026-11-07", "2026-11-08"]
     assert h["warn"] == [1, 0] and h["fail"] == [0, 1]
+
+
+def test_failure_demo_is_red_and_links_resolve(cfg: Config, tmp_path: Path) -> None:
+    from cleantape.site.demo import build_failure_demo
+
+    st, c = _state_with(cfg, tmp_path)
+    site = tmp_path / "site"
+    build_site(c, st, NOW, _portfolio(c, st), out_dir=site)  # builds site/demo too
+    assert (site / "demo" / "index.html").exists()
+    assert 'href="demo/index.html"' in (site / "about.html").read_text()
+    info = build_failure_demo(c, st, NOW, tmp_path / "demo2")
+    assert info is not None and info["status"] == "FAIL"
+    html = (site / "demo" / "index.html").read_text()
+    assert "banner-demo" in html and "DATA CHECKS FAILED" in html and "<s>250.00%</s>" in html
+    assert internal_link_problems(site) == []  # covers the demo pages and the back-link
+    # the real state is untouched
+    obs = st.read("observations")
+    assert obs[obs["instrument_id"] == "DGS10"]["value"].max() < 20

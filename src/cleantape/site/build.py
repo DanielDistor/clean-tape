@@ -441,9 +441,21 @@ def build_site(
     portfolio: dict[str, Any] | None,
     out_dir: Path | None = None,
     run_info: dict[str, Any] | None = None,
+    demo: bool = True,
 ) -> dict[str, Any]:
-    """Render every page into ``out_dir`` (default cfg.site_dir). Returns a summary."""
+    """Render every page into ``out_dir`` (default cfg.site_dir). Returns a summary.
+
+    With ``demo=True`` (and data available) a failure demo is also built into ``out/demo/``
+    and linked from the About and Health pages; links only appear when the demo exists.
+    """
     out = out_dir or cfg.site_dir
+    is_demo = bool((run_info or {}).get("demo"))
+    with_demo = False
+    if demo and not is_demo:
+        obs_ids = state.read("observations")["instrument_id"]
+        from cleantape.site.demo import BROKEN_SERIES
+
+        with_demo = bool((obs_ids == BROKEN_SERIES).any())
     if out.exists():
         shutil.rmtree(out)
     (out / "data" / "series").mkdir(parents=True)
@@ -489,6 +501,8 @@ def build_site(
         "behind": behind,
         "expected": expected,
         "stage_failures": stage_failures,
+        "demo": (run_info or {}).get("demo"),
+        "has_demo": with_demo,
         "repo_url": cfg.settings.site.repo_url,
         "plotly": PLOTLY_CDN,
         "asset_v": asset_version(HERE / "static"),
@@ -586,6 +600,13 @@ def build_site(
         name = "index.html" if page == "overview" else f"{page}.html"
         (out / name).write_text(html)
     (out / ".nojekyll").write_text("")
+    if with_demo:
+        from cleantape.site.demo import build_failure_demo
+
+        try:
+            build_failure_demo(cfg, state, now_utc, out / "demo")
+        except Exception as e:  # the demo is a nice-to-have; never block the real site
+            log.exception("failure demo build failed: %s", e)
     size = _dir_size(out)
     log.info("site built: %s (%.1f KB, %d series files)", out, size / 1024, len(sj))
     return {"dir": out, "bytes": size, "status": status, "headline": headline, "stale": stale}
