@@ -84,3 +84,15 @@ Things that went wrong, how they were caught, and what I learned. Format: what h
 - **How detected:** rendered the FAIL scenario at phone width and looked at it (the automated test only checked the table rows).
 - **Fix:** series with a FAIL flag on themselves or a leg are excluded from the strip, with a visible "Excluded because their data FAILED checks" note. The 30-day P&L history now applies the same FAIL flags. Test extended to assert both.
 - **Lesson:** every place a number appears needs the quality flag, especially summaries and rankings; "look at it" catches what assertions written in advance don't.
+
+## Phase 9 — GitHub automation
+
+### `.gitignore` silently excluded the whole dashboard package
+- **What happened:** `.gitignore` had `site/` (meant for the build output). Unanchored, it matches *any* directory named `site` — including the source package `src/cleantape/site/`. Seven phases of commits never contained the site code or templates. Everything worked locally because the files were on disk.
+- **How detected:** the first CI run failed on import ordering (ruff classed `cleantape.site` as third-party because it didn't exist in the checkout), and the first `daily` run crashed with `ModuleNotFoundError: No module named 'cleantape.site'`. A second symptom: ruff skips gitignored files, so `site/build.py` had never been linted (8 long lines).
+- **Fix:** anchored the patterns (`/site/`, `/state/`, `/reports/`, `/logs/`); committed the package; pinned ruff's isort first-party settings; added a "fresh clone → `uv sync --locked` → `make lint test`" check before pushing.
+- **Lesson:** "works on my machine" includes "files only on my machine". Test from a clean clone, and anchor ignore patterns to the root unless you really mean "anywhere".
+
+### Pre-existing `origin` remote
+- **What happened:** `gh repo create clean-tape --source . --push` created the repo but couldn't add `origin`: the local clone already pointed at an empty repo `DanielDistor/cleantape`.
+- **Fix:** kept that remote under the name `cleantape-empty` (nothing deleted) and pointed `origin` at `clean-tape`, matching the brief and the configured site URL.
