@@ -1,0 +1,163 @@
+# Clean Tape instrument universe.
+# Adding an instrument = adding an entry here. No code changes.
+#
+# units:        pct_yield | price | fx_rate | index_level | bp_spread
+# change_mode:  bp (yields/spreads: differences in basis points) | pct (prices: % change)
+# calendar:     nyse | us_bond | ecb_target | fx_weekday
+# expected_lag_business_days: publication delay on the instrument's own calendar
+#               (measured in Phase 3, see docs/DECISIONS.md)
+# display_group: null = stored and checked but not shown as its own row (e.g. second sources)
+
+instruments:
+  # ---------------------------------------------------------------- rates (FRED)
+  - {id: DGS3MO, name: "UST 3M", asset_class: rates, source: fred, source_symbol: DGS3MO,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -1.0, max: 20.0}, display_group: rates, display_order: 10}
+  - {id: DGS2, name: "UST 2Y", asset_class: rates, source: fred, source_symbol: DGS2,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -1.0, max: 20.0}, display_group: rates, display_order: 20}
+  - {id: DGS5, name: "UST 5Y", asset_class: rates, source: fred, source_symbol: DGS5,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -1.0, max: 20.0}, display_group: rates, display_order: 30}
+  - {id: DGS10, name: "UST 10Y", asset_class: rates, source: fred, source_symbol: DGS10,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -1.0, max: 20.0}, display_group: rates, display_order: 40}
+  - {id: DGS30, name: "UST 30Y", asset_class: rates, source: fred, source_symbol: DGS30,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -1.0, max: 20.0}, display_group: rates, display_order: 50}
+  - {id: T10YIE, name: "10Y breakeven", asset_class: rates, source: fred, source_symbol: T10YIE,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: -3.0, max: 6.0}, display_group: rates, display_order: 90}
+
+  # ---------------------------------------------------------------- credit & vol
+  - {id: HY_OAS, name: "US HY OAS", asset_class: credit, source: fred, source_symbol: BAMLH0A0HYM2,
+     units: pct_yield, change_mode: bp, calendar: us_bond, expected_lag_business_days: 1,
+     bounds: {min: 1.0, max: 25.0}, display_group: credit_vol, display_order: 10}
+  - {id: VIX, name: "VIX", asset_class: vol, source: yahoo, source_symbol: "^VIX",
+     units: index_level, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 5.0, max: 150.0}, display_group: credit_vol, display_order: 20}
+
+  # ---------------------------------------------------------------- equities (Yahoo, adjusted)
+  - {id: SPY, name: "S&P 500 (SPY)", asset_class: equities, source: yahoo, source_symbol: SPY,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 5000.0}, display_group: equities, display_order: 10,
+     fallback: {source: nasdaq, source_symbol: SPY, asset_type: etf}}
+  - {id: QQQ, name: "Nasdaq 100 (QQQ)", asset_class: equities, source: yahoo, source_symbol: QQQ,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 5000.0}, display_group: equities, display_order: 20,
+     fallback: {source: nasdaq, source_symbol: QQQ, asset_type: etf}}
+  - {id: IWM, name: "Russell 2000 (IWM)", asset_class: equities, source: yahoo, source_symbol: IWM,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 5000.0}, display_group: equities, display_order: 30,
+     fallback: {source: nasdaq, source_symbol: IWM, asset_type: etf}}
+  - {id: EFA, name: "EAFE (EFA)", asset_class: equities, source: yahoo, source_symbol: EFA,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 5000.0}, display_group: equities, display_order: 40,
+     fallback: {source: nasdaq, source_symbol: EFA, asset_type: etf}}
+  - {id: EEM, name: "EM equities (EEM)", asset_class: equities, source: yahoo, source_symbol: EEM,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 5000.0}, display_group: equities, display_order: 50,
+     fallback: {source: nasdaq, source_symbol: EEM, asset_type: etf}}
+
+  # ---------------------------------------------------------------- FX (Yahoo primary)
+  - {id: EURUSD, name: "EUR/USD", asset_class: fx, source: yahoo, source_symbol: "EURUSD=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 0.7, max: 1.8}, display_group: fx, display_order: 10,
+     cross_check: {against: EURUSD_ECB, kind: cross_source}}
+  - {id: USDJPY, name: "USD/JPY", asset_class: fx, source: yahoo, source_symbol: "USDJPY=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 70.0, max: 250.0}, display_group: fx, display_order: 20,
+     cross_check: {against: USDJPY_ECB, kind: cross_source}}
+  - {id: GBPUSD, name: "GBP/USD", asset_class: fx, source: yahoo, source_symbol: "GBPUSD=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 0.9, max: 2.2}, display_group: fx, display_order: 30,
+     cross_check: {against: GBPUSD_ECB, kind: cross_source}}
+  - {id: AUDUSD, name: "AUD/USD", asset_class: fx, source: yahoo, source_symbol: "AUDUSD=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 0.4, max: 1.2}, display_group: fx, display_order: 40,
+     cross_check: {against: AUDUSD_ECB, kind: cross_source}}
+  - {id: USDCAD, name: "USD/CAD", asset_class: fx, source: yahoo, source_symbol: "USDCAD=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 0.9, max: 1.8}, display_group: fx, display_order: 50,
+     cross_check: {against: USDCAD_ECB, kind: cross_source}}
+  - {id: USDCHF, name: "USD/CHF", asset_class: fx, source: yahoo, source_symbol: "USDCHF=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 1.5}, display_group: fx, display_order: 60,
+     cross_check: {against: USDCHF_ECB, kind: cross_source}}
+  - {id: EURJPY, name: "EUR/JPY", asset_class: fx, source: yahoo, source_symbol: "EURJPY=X",
+     units: fx_rate, change_mode: pct, calendar: fx_weekday, expected_lag_business_days: 0,
+     bounds: {min: 90.0, max: 250.0}, display_group: fx, display_order: 70,
+     cross_check: {against: EURJPY_IMPLIED, kind: triangle}}
+  - {id: DXY_BROAD, name: "Broad USD index (Fed)", asset_class: fx, source: fred, source_symbol: DTWEXBGS,
+     units: index_level, change_mode: pct, calendar: us_bond, expected_lag_business_days: 5,
+     bounds: {min: 80.0, max: 160.0}, display_group: fx, display_order: 90}
+
+  # ---------------------------------------------------------------- FX (ECB reference, second source)
+  # source_symbol is the pair in Yahoo convention; the ECB parser converts from
+  # "foreign currency per 1 EUR" quotes (see transform/normalize.py: ecb_cross).
+  - {id: EURUSD_ECB, name: "EUR/USD (ECB fix)", asset_class: fx, source: ecb, source_symbol: EURUSD,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 0.7, max: 1.8}, display_group: null, display_order: 0}
+  - {id: USDJPY_ECB, name: "USD/JPY (ECB fix)", asset_class: fx, source: ecb, source_symbol: USDJPY,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 70.0, max: 250.0}, display_group: null, display_order: 0}
+  - {id: GBPUSD_ECB, name: "GBP/USD (ECB fix)", asset_class: fx, source: ecb, source_symbol: GBPUSD,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 0.9, max: 2.2}, display_group: null, display_order: 0}
+  - {id: AUDUSD_ECB, name: "AUD/USD (ECB fix)", asset_class: fx, source: ecb, source_symbol: AUDUSD,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 0.4, max: 1.2}, display_group: null, display_order: 0}
+  - {id: USDCAD_ECB, name: "USD/CAD (ECB fix)", asset_class: fx, source: ecb, source_symbol: USDCAD,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 0.9, max: 1.8}, display_group: null, display_order: 0}
+  - {id: USDCHF_ECB, name: "USD/CHF (ECB fix)", asset_class: fx, source: ecb, source_symbol: USDCHF,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 1.5}, display_group: null, display_order: 0}
+  - {id: EURJPY_ECB, name: "EUR/JPY (ECB fix)", asset_class: fx, source: ecb, source_symbol: EURJPY,
+     units: fx_rate, change_mode: pct, calendar: ecb_target, expected_lag_business_days: 0,
+     bounds: {min: 90.0, max: 250.0}, display_group: null, display_order: 0}
+
+  # ---------------------------------------------------------------- commodities: futures (display only)
+  - {id: CL_F, name: "WTI crude (front)", asset_class: commodities, source: yahoo, source_symbol: "CL=F",
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: -50.0, max: 250.0}, display_group: commodities, display_order: 10,
+     is_future: true, cross_check: {against: WTI_SPOT, kind: cross_source}}
+  - {id: GC_F, name: "Gold (front)", asset_class: commodities, source: yahoo, source_symbol: "GC=F",
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 500.0, max: 20000.0}, display_group: commodities, display_order: 20, is_future: true}
+  - {id: HG_F, name: "Copper (front)", asset_class: commodities, source: yahoo, source_symbol: "HG=F",
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 1.0, max: 25.0}, display_group: commodities, display_order: 30, is_future: true}
+  - {id: NG_F, name: "Nat gas (front)", asset_class: commodities, source: yahoo, source_symbol: "NG=F",
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 30.0}, display_group: commodities, display_order: 40, is_future: true}
+  - {id: WTI_SPOT, name: "WTI spot (EIA via FRED)", asset_class: commodities, source: fred, source_symbol: DCOILWTICO,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 3,
+     bounds: {min: -50.0, max: 250.0}, display_group: commodities, display_order: 50}
+
+  # ---------------------------------------------------------------- commodities: ETFs (used for P&L)
+  - {id: USO, name: "Oil ETF (USO)", asset_class: commodities, source: yahoo, source_symbol: USO,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 5000.0}, display_group: commodities, display_order: 60,
+     fallback: {source: nasdaq, source_symbol: USO, asset_type: etf}}
+  - {id: GLD, name: "Gold ETF (GLD)", asset_class: commodities, source: yahoo, source_symbol: GLD,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 5000.0}, display_group: commodities, display_order: 70,
+     fallback: {source: nasdaq, source_symbol: GLD, asset_type: etf}}
+  - {id: CPER, name: "Copper ETF (CPER)", asset_class: commodities, source: yahoo, source_symbol: CPER,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 5000.0}, display_group: commodities, display_order: 80,
+     fallback: {source: nasdaq, source_symbol: CPER, asset_type: etf}}
+  - {id: UNG, name: "Nat gas ETF (UNG)", asset_class: commodities, source: yahoo, source_symbol: UNG,
+     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
+     bounds: {min: 0.5, max: 5000.0}, display_group: commodities, display_order: 90,
+     fallback: {source: nasdaq, source_symbol: UNG, asset_type: etf}}
+
+# Derived series: always computed from components observed on the SAME date.
+spreads:
+  - {id: S2S10S, name: "2s10s", long: DGS10, short: DGS2, display_group: rates, display_order: 60}
+  - {id: S5S30S, name: "5s30s", long: DGS30, short: DGS5, display_group: rates, display_order: 70}
+  - {id: S3M10Y, name: "3m10y", long: DGS10, short: DGS3MO, display_group: rates, display_order: 80}
+
+crosses:
+  - {id: EURJPY_IMPLIED, name: "EUR/JPY implied (EURUSD×USDJPY)", left: EURUSD, right: USDJPY}

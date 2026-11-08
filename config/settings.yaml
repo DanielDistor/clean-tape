@@ -1,0 +1,49 @@
+# Clean Tape runtime settings. All paths are relative to the repo root.
+paths:
+  state_dir: state          # local pipeline state (in CI: checkout of the `data` branch)
+  site_dir: site            # static site build output (never committed)
+  logs_dir: logs
+  universe: config/universe.yaml
+  portfolio: config/portfolio.csv
+
+display_timezone: America/New_York
+
+# Logical run slots, in New York time. `cleantape run --slot auto` runs only inside a window
+# and only if that slot has not already succeeded today.
+slots:
+  morning: {start: "06:30", end: "09:30", report: false}
+  evening: {start: "18:15", end: "22:00", report: true}
+
+# A daily bar for NYSE instruments for date D is stored only after this NY time on D.
+nyse_close_buffer: "16:30"
+
+ingest:
+  backfill_start: 2020-01-01
+  lookback_business_days: 10
+  http_timeout_s: 30
+  retries: 4
+  backoff_base_s: 2.0
+  raw_retention_days: 20
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) clean-tape/0.1"
+
+derive:
+  zscore_window: 252
+  zscore_min_obs: 120
+  ffill_max_days: 3
+
+checks:
+  freshness: {warn_business_days: 1, fail_business_days: 2}
+  completeness: {lookback_business_days: 10, row_count_tolerance: 0.5}
+  staleness: {warn_sessions: 4}
+  outliers: {warn_z: 4.0, fail_z: 6.0}
+  spread_identity_tolerance_bp: 0.0001
+  # Cross-source tolerances, calibrated from history by `cleantape calibrate`
+  # (method + numbers recorded in docs/DECISIONS.md). Units: relative |diff| (fraction).
+  consistency: {}
+
+site:
+  title: Clean Tape
+  base_url: https://danieldistor.github.io/clean-tape/
+  repo_url: https://github.com/DanielDistor/clean-tape
+  stale_after_business_days: 1
+  report_archive_days: 30
