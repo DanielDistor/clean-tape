@@ -77,25 +77,37 @@ def fmt_usd(v: float | None) -> str:
     return f"{v:,.0f}"
 
 
-def sparkline_svg(values: list[float], width: int = 84, height: int = 20) -> str:
-    """Inline SVG polyline of the last values (no JS needed). Empty string if < 2 points."""
+def sparkline_svg(values: list[float], width: int = 84, height: int = 20, area: bool = True) -> str:
+    """Inline SVG sparkline (line + faint area + last-point dot). Empty string if < 2 points."""
     vals = [v for v in values if v is not None and not math.isnan(v)]
     if len(vals) < 2:
         return ""
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1.0
     step = (width - 4) / (len(vals) - 1)
-    pts = " ".join(
-        f"{2 + i * step:.1f},{height - 2 - (v - lo) / span * (height - 4):.1f}"
-        for i, v in enumerate(vals)
-    )
-    last_x, last_y = pts.split(" ")[-1].split(",")
+    xy = [(2 + i * step, height - 2 - (v - lo) / span * (height - 4)) for i, v in enumerate(vals)]
+    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in xy)
+    last_x, last_y = xy[-1]
+    fill = ""
+    if area:
+        poly = f"{xy[0][0]:.1f},{height} {pts} {last_x:.1f},{height}"
+        fill = f'<polygon points="{poly}" fill="currentColor" fill-opacity="0.13" stroke="none"/>'
     return (
         f'<svg class="spark" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
-        f'aria-hidden="true"><polyline points="{pts}" fill="none" stroke="currentColor" '
-        f'stroke-width="1.5" stroke-linejoin="round"/><circle cx="{last_x}" cy="{last_y}" '
+        f'aria-hidden="true" preserveAspectRatio="none">{fill}<polyline points="{pts}" '
+        f'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" '
+        f'vector-effect="non-scaling-stroke"/><circle cx="{last_x:.1f}" cy="{last_y:.1f}" '
         f'r="2" fill="currentColor"/></svg>'
     )
+
+
+def z_bar(z: float | None, cap: float = 4.0) -> dict[str, float] | None:
+    """Geometry (% of cell) for a diverging bar centred on zero, capped at |z| = cap."""
+    if z is None or (isinstance(z, float) and math.isnan(z)):
+        return None
+    zc = max(-cap, min(cap, float(z)))
+    width = abs(zc) / cap * 50
+    return {"left": 50 if zc >= 0 else 50 - width, "width": round(width, 1)}
 
 
 def _r(v: float, units: str) -> float | None:
@@ -193,6 +205,7 @@ def overview_rows(
                 "cls": {k: sign_class(last[f"chg_{k}"]) for k in ("1d", "1w", "1m", "ytd")},
                 "z": "—" if pd.isna(z) else f"{z:+.1f}",
                 "z_hot": (not pd.isna(z)) and abs(z) > 2,
+                "zbar": z_bar(None if pd.isna(z) else float(z)),
                 "as_of": last["date"] if headline is None or last["date"] != headline else None,
                 "spark": sparkline_svg(grp["value"].tail(60).tolist()),
                 "source": last["source"],
@@ -204,6 +217,34 @@ def overview_rows(
     for rows in groups.values():
         rows.sort(key=lambda r: r["order"])
     return groups
+
+
+def hero_tiles(cfg: Config, derived: pd.DataFrame, flags: dict[str, Flag]) -> list[dict[str, Any]]:
+    """Big headline tiles for the Overview (series listed in settings.site.hero)."""
+    cat = series_catalog(cfg.universe)
+    out = []
+    for sid in cfg.settings.site.hero:
+        meta = cat.get(sid)
+        grp = derived[derived["series_id"] == sid].sort_values("date")
+        if meta is None or grp.empty:
+            continue
+        last = grp.iloc[-1]
+        flag = subject_flag(flags, sid, meta, cfg)
+        out.append(
+            {
+                "id": sid,
+                "name": meta.name,
+                "date": last["date"],
+                "flag": flag,
+                "bad": flag is not None and flag.severity == "FAIL",
+                "last": fmt_level(last["value"], meta.units, sid),
+                "chg": fmt_change(last["chg_1d"], meta.change_mode),
+                "cls": sign_class(last["chg_1d"]),
+                "ytd": fmt_change(last["chg_ytd"], meta.change_mode),
+                "spark": sparkline_svg(grp["value"].tail(120).tolist(), width=220, height=44),
+            }
+        )
+    return out
 
 
 def tape_items(cfg: Config, derived: pd.DataFrame, flags: dict[str, Flag]) -> list[dict[str, Any]]:
@@ -327,7 +368,11 @@ def check_history(checks: pd.DataFrame, days: int = 30) -> dict[str, Any]:
     if checks.empty:
         return {"d": [], "warn": [], "fail": []}
     c = checks.copy()
-    c["day"] = c["run_id"].str.slice(0, 8)
+    # run_id is a UTC timestamp; evening runs after 19:00 ET fall on the next UTC day, so group
+    # by the run's New York date instead.
+    started = pd.to_datetime(c["run_id"], format="%Y%m%dT%H%M%SZ", utc=True, errors="coerce")
+    c["day"] = started.dt.tz_convert("America/New_York").dt.strftime("%Y%m%d")
+    c = c.dropna(subset=["day"])
     last_runs = c.groupby("day")["run_id"].max()
     c = c[c["run_id"].isin(last_runs.values)]
     counts = c.groupby(["day", "severity"]).size().unstack(fill_value=0)
@@ -460,6 +505,7 @@ def build_site(
     ctx: dict[str, dict[str, Any]] = {p: {} for p in PAGES}
 
     ctx["overview"] = {
+        "hero": hero_tiles(cfg, derived, flags) if not derived.empty else [],
         "groups": [
             (g, label, rows)
             for (g, label), rows in zip(
@@ -520,6 +566,7 @@ def build_site(
         else manifest
     )
     if not man.empty:
+        man["error"] = man["error"].fillna("")
         man["received_et"] = man["received_at_utc"].map(lambda t: fmt_ny(t.to_pydatetime(), True))
     ctx["health"] = {
         "results": res_rows.to_dict("records") if not res_rows.empty else [],

@@ -228,6 +228,7 @@ class Site(_Strict):
     repo_url: str
     stale_after_business_days: int
     report_archive_days: int
+    hero: list[str] = []  # series ids shown as big tiles at the top of the Overview
 
 
 class Settings(_Strict):

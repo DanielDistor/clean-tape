@@ -1,34 +1,21 @@
 {% extends "base.html" %}
 {% from "_macros.html" import flagged %}
 {% block title %}Overview{% endblock %}
-{% block content %}
-{% if movers %}
-<section class="movers" aria-label="Biggest moves by z-score">
-  <h2>Top movers <span class="muted">ranked by |z| of today's move vs 1y of daily moves</span></h2>
-  <ol>
-  {% for m in movers %}
-    <li><span class="mname">{{ m.name }}</span> <span class="{{ m.cls }}">{{ m.chg }}</span> <span class="z">{{ m.z }}</span>{% if m.date != headline %} <span class="asof">{{ m.date }}</span>{% endif %}</li>
-  {% endfor %}
-  </ol>
-  {% if movers_excluded %}<p class="note bad">⚠ Excluded because their data FAILED checks: {{ movers_excluded|join(", ") }}.</p>{% endif %}
-</section>
-{% endif %}
-{% if not groups %}<p class="banner banner-fail">No data in state. Run <code>make bootstrap</code>.</p>{% endif %}
-<div class="grid">
-{% for gid, label, rows in groups %}
-<section class="card">
+
+{% macro panel(gid, label, rows) %}
+<section class="card" aria-labelledby="h-{{ gid }}">
   {% set show_asof = rows|selectattr("as_of")|list|length > 0 %}
-  <h2>{{ label }} <span class="muted">{{ rows|length }} series</span></h2>
+  <h2 id="h-{{ gid }}">{{ label }} <span class="muted">{{ rows|length }} series</span></h2>
   <div class="scroll">
   <table class="num">
-    <thead><tr><th class="l">Series</th><th>Last</th><th>1d</th><th>1w</th><th>1m</th><th>YTD</th><th title="z-score of today's move vs trailing 252 daily moves">z</th><th class="l">60d</th>{% if show_asof %}<th class="l">As of</th>{% endif %}</tr></thead>
+    <thead><tr><th class="l">Series</th><th>Last</th><th>1d</th><th>1w</th><th>1m</th><th>YTD</th><th class="zh" title="z-score of today's move vs trailing 252 daily moves (bar capped at ±4σ)">z</th><th class="l">60d</th>{% if show_asof %}<th class="l">As of</th>{% endif %}</tr></thead>
     <tbody>
     {% for r in rows %}
     <tr id="{{ r.id }}"{% if r.flag %} class="row-{{ r.flag.severity|lower }}"{% endif %}>
       <th class="l" scope="row"><a href="markets.html#{{ r.id }}">{{ r.name }}</a>{% if r.fallback %} <span class="tag" title="Yahoo unavailable: Nasdaq fallback, unadjusted close">fallback</span>{% endif %}{% if r.future %} <span class="tag" title="Front-month continuous future: display only, roll jumps not adjusted">front</span>{% endif %}</th>
       <td>{{ flagged(r, r.last) }}</td>
       {% for k in ["1d", "1w", "1m", "ytd"] %}<td class="{{ r.cls[k] }}">{{ flagged(r, r.chg[k]) }}</td>{% endfor %}
-      <td class="{{ 'hot' if r.z_hot }}">{{ r.z }}</td>
+      <td class="zc{{ ' hot' if r.z_hot }}">{% if r.zbar and not (r.flag and r.flag.severity == "FAIL") %}<span class="zb" aria-hidden="true"><i style="left:{{ r.zbar.left }}%;width:{{ r.zbar.width }}%"></i></span>{% endif %}<span class="zv">{{ flagged(r, r.z) }}</span></td>
       <td class="l spark-cell">{{ r.spark|safe }}</td>
       {% if show_asof %}<td class="l asof">{% if r.as_of %}<time datetime="{{ r.as_of }}" title="{{ r.as_of }}">{{ r.as_of.strftime("%b %d") }}</time>{% endif %}</td>{% endif %}
     </tr>
@@ -37,7 +24,46 @@
   </table>
   </div>
 </section>
-{% endfor %}
+{% endmacro %}
+
+{% block content %}
+{% if hero %}
+<section class="hero" aria-label="Headline numbers">
+  {% for h in hero %}
+  <a class="hero-tile{% if h.bad %} hero-bad{% endif %}" href="markets.html#{{ h.id }}">
+    <span class="hl">{{ h.name }}{% if h.date != headline %} <span class="asof">{{ h.date.strftime("%b %d") }}</span>{% endif %}</span>
+    {% if h.bad %}
+    <span class="hv bad" title="{{ h.flag.tooltip }}">⚠ <s>{{ h.last }}</s></span>
+    <span class="hc bad">unreliable — failed checks</span>
+    {% else %}
+    <span class="hv">{{ h.last }}</span>
+    <span class="hc"><span class="{{ h.cls }}">{{ "▲" if h.cls == "up" else "▼" if h.cls == "down" else "■" }} {{ h.chg }}</span> <span class="muted">YTD {{ h.ytd }}</span></span>
+    {% endif %}
+    <span class="hs">{{ h.spark|safe }}</span>
+  </a>
+  {% endfor %}
+</section>
+{% endif %}
+{% if not groups %}<p class="banner banner-fail">No data in state. Run <code>make bootstrap</code>.</p>{% endif %}
+{% set g = {} %}{% for gid, label, rows in groups %}{% set _ = g.update({gid: (label, rows)}) %}{% endfor %}
+<div class="cols">
+  <div class="col">
+    {% for gid in ["rates", "credit_vol", "commodities"] %}{% if gid in g %}{{ panel(gid, g[gid][0], g[gid][1]) }}{% endif %}{% endfor %}
+  </div>
+  <div class="col">
+    {% for gid in ["equities", "fx"] %}{% if gid in g %}{{ panel(gid, g[gid][0], g[gid][1]) }}{% endif %}{% endfor %}
+    {% if movers %}
+    <section class="card movers" aria-label="Biggest moves by z-score">
+      <h2>Top movers <span class="muted">|z| of today's move vs 1y</span></h2>
+      <ol>
+      {% for m in movers %}
+        <li><a href="markets.html#{{ m.id }}"><span class="mname">{{ m.name }}</span></a> <span class="{{ m.cls }}">{{ m.chg }}</span> <span class="z">{{ m.z }}</span>{% if m.date != headline %} <span class="asof">{{ m.date.strftime("%b %d") }}</span>{% endif %}</li>
+      {% endfor %}
+      </ol>
+      {% if movers_excluded %}<p class="note bad">⚠ Excluded because their data FAILED checks: {{ movers_excluded|join(", ") }}.</p>{% endif %}
+    </section>
+    {% endif %}
+  </div>
 </div>
-<p class="note">Yields shown in %, their changes in bp; prices and FX changes in %. Equity/ETF prices are dividend-adjusted closes. Green/red = up/down, not good/bad. |z| &gt; 2 highlighted. Rows show their own date when it differs from the headline (e.g. FRED yields publish a day late).</p>
+<p class="note">Yields in %, their changes in bp; prices and FX changes in %. Equity/ETF prices are dividend-adjusted closes. Green/red = up/down, not good/bad. The z bar shows today's move against the last year of daily moves (amber when |z| &gt; 2). Rows show their own date when it differs from the headline (FRED yields publish a day late).</p>
 {% endblock %}

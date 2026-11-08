@@ -66,3 +66,4 @@ site:
   repo_url: https://github.com/DanielDistor/clean-tape
   stale_after_business_days: 1
   report_archive_days: 30
+  hero: [SPY, DGS10, S2S10S, EURUSD, CL_F, VIX]

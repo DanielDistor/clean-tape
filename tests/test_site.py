@@ -180,3 +180,23 @@ def test_formatters() -> None:
     assert fmt_level(float("nan"), "price") == "—"
     assert fmt_change(6.0, "bp") == "+6.0bp" and fmt_change(-0.314, "pct") == "-0.31%"
     assert sparkline_svg([1.0]) == "" and "<polyline" in sparkline_svg([1.0, 2.0, 1.5])
+
+
+def test_check_history_groups_by_new_york_date() -> None:
+    import pandas as pd
+
+    from cleantape.site.build import check_history
+
+    checks = pd.DataFrame(
+        {
+            "run_id": [
+                "20261108T013000Z",
+                "20261108T013000Z",
+                "20261108T120000Z",
+            ],  # 20:30 ET Nov 7
+            "severity": ["WARN", "OK", "FAIL"],
+        }
+    )
+    h = check_history(checks)
+    assert h["d"] == ["2026-11-07", "2026-11-08"]
+    assert h["warn"] == [1, 0] and h["fail"] == [0, 1]

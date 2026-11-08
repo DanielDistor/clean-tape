@@ -19,6 +19,17 @@
   }
   const config = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ["lasso2d", "select2d"] };
   const plot = (id, data, extra) => { if ($(id) && window.Plotly) Plotly.newPlot(id, data, layout(extra), config); };
+  // Line with a soft area fill down to the series minimum (not to zero, which would squash
+  // yields/prices). Implemented as an invisible baseline trace + fill: "tonexty".
+  const hexA = (hex, a) => { const n = parseInt(hex.replace("#", ""), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+  function area(x, y, name, color, extra) {
+    const vals = y.filter((v) => v != null);
+    const lo = vals.length ? Math.min(...vals) : 0;
+    const base = { x, y: x.map(() => lo), type: "scatter", mode: "lines", line: { width: 0 },
+      hoverinfo: "skip", showlegend: false };
+    return [base, line(x, y, name, color, Object.assign({ fill: "tonexty", fillcolor: hexA(color, 0.14) }, extra || {}))];
+  }
   const line = (x, y, name, color, extra) => Object.assign(
     { x, y, name, type: "scatter", mode: "lines", line: { color, width: 2 }, connectgaps: false }, extra || {});
 
@@ -36,8 +47,8 @@
     const hist = readJSON("history-data") || {};
     Object.values(hist).forEach((s) => {
       const y = s.units === "bp_spread" ? s.v : s.v;
-      plot(`h-${s.id}`, [line(s.d, y, s.name, css("--s1"),
-        { hovertemplate: s.units === "bp_spread" ? "%{y:.0f}bp<extra></extra>" : "%{y:.2f}%<extra></extra>" })],
+      plot(`h-${s.id}`, area(s.d, y, s.name, css("--s1"),
+        { hovertemplate: s.units === "bp_spread" ? "%{y:.0f}bp<extra></extra>" : "%{y:.2f}%<extra></extra>" }),
         { yaxis: { ticksuffix: s.units === "bp_spread" ? "" : "%", gridcolor: css("--grid") } });
     });
   }
@@ -62,7 +73,7 @@
       const start = startFor(last);
       const unit = s.units === "pct_yield" ? "%" : s.units === "bp_spread" ? "bp" : "";
       $("series-title").textContent = `${s.name} — last ${last}`;
-      plot("series-chart", [line(s.d, s.v, s.name, css("--s1"), { hovertemplate: `%{y}${unit}<extra></extra>` })],
+      plot("series-chart", area(s.d, s.v, s.name, css("--s1"), { hovertemplate: `%{y}${unit}<extra></extra>` }),
         { xaxis: { range: start ? [start, last] : undefined, gridcolor: css("--grid") }, yaxis: { ticksuffix: unit, gridcolor: css("--grid"), autorange: true } });
       if (start && window.Plotly) {  // rescale y to the visible window
         const ys = s.v.filter((v, i) => s.d[i] >= start && v != null);
@@ -114,16 +125,22 @@
     const boxes = document.querySelectorAll("input[data-sev]");
     const apply = () => {
       const on = new Set([...boxes].filter((b) => b.checked).map((b) => b.dataset.sev));
-      document.querySelectorAll("#checks tbody tr").forEach((tr) => { tr.hidden = !on.has(tr.dataset.sev); });
+      document.querySelectorAll("#checks tbody tr[data-sev]").forEach((tr) => { tr.hidden = !on.has(tr.dataset.sev); });
     };
     boxes.forEach((b) => b.addEventListener("change", apply));
     if (boxes.length) apply();
     const h = readJSON("check-history-data");
     if (h && h.d.length) {
+      const total = h.warn.concat(h.fail).reduce((a, b) => a + b, 0);
       plot("check-history", [
-        { x: h.d, y: h.warn, name: "⚠ WARN", type: "bar", marker: { color: css("--warning") }, hovertemplate: "%{y} WARN<extra></extra>" },
-        { x: h.d, y: h.fail, name: "✕ FAIL", type: "bar", marker: { color: css("--critical") }, hovertemplate: "%{y} FAIL<extra></extra>" },
-      ], { barmode: "stack", showlegend: true, legend: { orientation: "h", y: -0.2 }, bargap: 0.3 });
+        { x: h.d, y: h.warn, name: "⚠ WARN", type: "bar", marker: { color: css("--warning") }, hovertemplate: "%{x}: %{y} WARN<extra></extra>" },
+        { x: h.d, y: h.fail, name: "✕ FAIL", type: "bar", marker: { color: css("--critical") }, hovertemplate: "%{x}: %{y} FAIL<extra></extra>" },
+      ], { barmode: "stack", showlegend: true, legend: { orientation: "h", y: -0.25 }, bargap: 0.3,
+        xaxis: { type: "category", gridcolor: css("--grid") },  // one bar per run-day, never a time axis
+        yaxis: { rangemode: "tozero", range: total ? undefined : [0, 1], dtick: total ? undefined : 1, gridcolor: css("--grid") },
+        annotations: total ? [] : [{ xref: "paper", yref: "paper", x: 0.5, y: 0.55, showarrow: false,
+          text: `✓ No warnings or failures in the last ${h.d.length} day${h.d.length > 1 ? "s" : ""}`,
+          font: { color: css("--good"), size: 13 } }] });
     }
   }
 

@@ -91,3 +91,7 @@ One line of reasoning each. Newest at the bottom of each section.
 - **Ticker tape** scrolls every displayed series' last and 1d move; it pauses on hover/focus, stops under `prefers-reduced-motion`, and shows FAIL series as "✕ UNRELIABLE" with no number.
 - **The EOD email/HTML report keeps a light theme**: email clients and printers handle light backgrounds far better.
 - **Header is sticky on desktop, static on phones** (a sticky three-row header would cover a third of a phone screen).
+- **Headline tiles** (configurable via `site.hero`) show six key numbers with a 120-session area sparkline. Sparklines stay amber rather than green/red: colouring a four-month chart by one day's move would misrepresent it.
+- **Z-score bars**: a diverging bar centred on zero, capped at ±4σ, amber when |z| > 2, next to the number (never instead of it).
+- **Overview is two balanced columns** (rates · credit & vol · commodities | equities · FX · top movers) instead of an auto-fit grid that left a hole.
+- **Chart area fills go down to the series minimum, not to zero**, so yields and prices aren't squashed against a zero baseline.

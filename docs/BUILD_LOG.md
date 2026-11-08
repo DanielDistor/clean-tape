@@ -104,3 +104,9 @@ Things that went wrong, how they were caught, and what I learned. Format: what h
 - **How detected:** the user's screenshot. My own check used a fresh headless browser with an empty cache, so it looked fine; `curl` showed the server already had the new CSS.
 - **Fix:** asset URLs carry a content hash (`static/style.css?v=<sha256[:10]>`), so any change to CSS/JS produces a new URL and can't be paired with stale cache. Test added.
 - **Lesson:** verify deploys the way users see them — with a warm cache — and version static assets from day one.
+
+### Health-page history was bucketed by UTC date
+- **What happened:** the WARN/FAIL-per-day chart labelled an evening run on Nov 7 (New York) as Nov 8, because it grouped by the date in the UTC `run_id`. Every evening run after 19:00 ET would be filed under the wrong day. The same chart drew a time axis with ticks like `23:59:59.9996` when only one day existed.
+- **How detected:** screenshot review during the design pass.
+- **Fix:** group by the run's New York date (test added); category x-axis; an explicit "No warnings or failures" annotation when the counts are all zero.
+- **Lesson:** the "dates vs timestamps" rule applies to the UI too: any label derived from a UTC timestamp must be converted to New York time first.

@@ -2,6 +2,13 @@
 {% block title %}Data health{% endblock %}
 {% block head %}<script src="{{ plotly }}" defer></script>{% endblock %}
 {% block content %}
+<div class="tiles">
+  <div class="tile"><div class="tl">Overall</div><div class="tv sev-{{ status|lower }}">{{ {"OK": "✓ OK", "WARN": "⚠ WARN", "FAIL": "✕ FAIL"}[status] }}</div></div>
+  <div class="tile"><div class="tl">✓ Passed</div><div class="tv sev-ok">{{ counts.get("OK", 0) }}</div></div>
+  <div class="tile"><div class="tl">⚠ Warnings</div><div class="tv sev-warn">{{ counts.get("WARN", 0) }}</div></div>
+  <div class="tile"><div class="tl">✕ Failures</div><div class="tv sev-fail">{{ counts.get("FAIL", 0) }}</div></div>
+  <div class="tile"><div class="tl">Checks</div><div class="tv">7</div><div class="note" style="margin:0">freshness · completeness · schema · validity · staleness · outliers · consistency</div></div>
+</div>
 <section class="card">
   <h2>Latest check results</h2>
   <div class="controls" role="group" aria-label="Filter by severity">
@@ -10,7 +17,7 @@
   {% if not results %}<p class="banner banner-fail">✕ No check results — checks have not run.</p>{% endif %}
   <div class="scroll"><table id="checks">
     <thead><tr><th class="l">Severity</th><th class="l">Check</th><th class="l">Subject</th><th class="l">As of</th><th class="l">Message</th><th class="l">Observed</th><th class="l">Expected</th></tr></thead>
-    <tbody>{% set seen = namespace(ids=[]) %}{% for r in results %}
+    <tbody>{% if results and not counts.get("FAIL") and not counts.get("WARN") %}<tr class="allok"><td class="l" colspan="7"><span class="sev sev-ok">✓ ALL {{ counts.get("OK", 0) }} CHECKS PASSED</span> <span class="muted">— tick OK above to list them</span></td></tr>{% endif %}{% set seen = namespace(ids=[]) %}{% for r in results %}
     <tr data-sev="{{ r.severity }}"{% if r.subject not in seen.ids %} id="{{ r.subject }}"{% set seen.ids = seen.ids + [r.subject] %}{% endif %}{% if r.severity == "OK" %} hidden{% endif %}>
       <td class="l"><span class="sev sev-{{ r.severity|lower }}">{{ {"OK": "✓", "WARN": "⚠", "FAIL": "✕"}[r.severity] }} {{ r.severity }}</span></td>
       <td class="l">{{ r.check }}</td><td class="l">{{ r.subject }}</td><td class="l asof">{{ r.as_of_date }}</td>
