@@ -12,13 +12,14 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from conftest import FIXTURES
 
 from cleantape.checks.base import CheckContext
 from cleantape.checks.runner import run_checks
 from cleantape.clock import NY
 from cleantape.config import Config
 from cleantape.transform.derive import build_derived
+
+from conftest import FIXTURES
 
 # Saturday evening after the sample was captured: everything in the sample is "fresh".
 NOW = dt.datetime(2026, 11, 7, 20, 0, tzinfo=NY).astimezone(dt.UTC)

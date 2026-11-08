@@ -4,14 +4,15 @@ import datetime as dt
 
 import pandas as pd
 import pytest
-from broken_scenarios import SCENARIOS, Scenario, clean_manifest, clean_obs, context, run_scenario
-from conftest import FIXTURES
 
 from cleantape.checks import consistency, outliers, schema
 from cleantape.checks.base import Severity
 from cleantape.checks.runner import affected, overall, run_checks
 from cleantape.clock import NY
 from cleantape.config import Config
+
+from broken_scenarios import SCENARIOS, Scenario, clean_manifest, clean_obs, context, run_scenario
+from conftest import FIXTURES
 
 
 def sev(results: pd.DataFrame, check: str, subject: str) -> str:

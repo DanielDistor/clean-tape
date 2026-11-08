@@ -5,13 +5,14 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from conftest import FIXTURES
 
 from cleantape.clock import NY, Clock, FixedClock
 from cleantape.config import Config, Instrument
 from cleantape.ingest.base import FetchError, RawDrop, backoff_delays, with_retries
 from cleantape.ingest.run import run_ingest
 from cleantape.store.state import SchemaError, State, empty_frame
+
+from conftest import FIXTURES
 
 NOW = FixedClock(dt.datetime(2025, 11, 21, 19, 0, tzinfo=NY))  # Friday 19:00 ET
 

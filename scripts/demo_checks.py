@@ -10,10 +10,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 
-from broken_scenarios import SCENARIOS, clean_obs, context, run_scenario
-
 from cleantape.checks.runner import overall, run_checks
 from cleantape.config import load_config
+
+from broken_scenarios import SCENARIOS, clean_obs, context, run_scenario
 
 
 def main() -> None:

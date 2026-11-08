@@ -4,12 +4,13 @@ import datetime as dt
 from pathlib import Path
 
 import pytest
-from broken_scenarios import NOW, SCENARIOS
 from openpyxl import load_workbook
-from test_site import _portfolio, _state_with
 
 from cleantape.config import Config
 from cleantape.report.build import write_report
+
+from broken_scenarios import NOW, SCENARIOS
+from test_site import _portfolio, _state_with
 
 DAY = dt.date(2026, 11, 6)
 

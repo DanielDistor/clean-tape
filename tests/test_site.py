@@ -7,13 +7,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
-from broken_scenarios import NOW, SCENARIOS, clean_obs, context
-from conftest import ROOT
 
 from cleantape.checks.runner import persist, run_checks
 from cleantape.config import Config, load_config
 from cleantape.site.build import build_site, fmt_change, fmt_level, sparkline_svg
 from cleantape.store.state import State
+
+from broken_scenarios import NOW, SCENARIOS, clean_obs, context
+from conftest import ROOT
 
 
 class _Links(HTMLParser):

@@ -5,7 +5,6 @@ import io
 
 import pandas as pd
 import pytest
-from conftest import FIXTURES
 
 from cleantape.ingest.yahoo import frame_to_long
 from cleantape.transform.normalize import (
@@ -17,6 +16,8 @@ from cleantape.transform.normalize import (
     parse_nasdaq_json,
     parse_yahoo_long,
 )
+
+from conftest import FIXTURES
 
 D = dt.date
 

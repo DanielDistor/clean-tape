@@ -5,14 +5,15 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from broken_scenarios import clean_manifest, clean_obs, context
-from conftest import ROOT
 
 from cleantape.clock import NY, FixedClock
 from cleantape.config import Config, load_config
 from cleantape.pipeline import run, succeeded_slots
 from cleantape.store.state import State
 from cleantape.store.sync import SyncError, pull, push
+
+from broken_scenarios import clean_manifest, clean_obs, context
+from conftest import ROOT
 
 # Saturday 2026-11-07 19:00 ET is inside the evening window; the fixture sample ends Fri 11-06.
 EVENING = FixedClock(dt.datetime(2026, 11, 7, 19, 0, tzinfo=NY))
