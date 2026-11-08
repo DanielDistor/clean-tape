@@ -16,7 +16,7 @@
       <td>{{ flagged(r, r.last) }}</td>
       {% for k in ["1d", "1w", "1m", "ytd"] %}<td class="{{ r.cls[k] }}">{{ flagged(r, r.chg[k]) }}</td>{% endfor %}
       <td class="zc{{ ' hot' if r.z_hot }}">{% if r.zbar and not (r.flag and r.flag.severity == "FAIL") %}<span class="zb" aria-hidden="true"><i style="left:{{ r.zbar.left }}%;width:{{ r.zbar.width }}%"></i></span>{% endif %}<span class="zv">{{ flagged(r, r.z) }}</span></td>
-      <td class="l spark-cell">{{ r.spark|safe }}</td>
+      <td class="l spark-cell">{% if not (r.flag and r.flag.severity == "FAIL") %}{{ r.spark|safe }}{% endif %}</td>
       {% if show_asof %}<td class="l asof">{% if r.as_of %}<time datetime="{{ r.as_of }}" title="{{ r.as_of }}">{{ r.as_of.strftime("%b %d") }}</time>{% endif %}</td>{% endif %}
     </tr>
     {% endfor %}
@@ -39,7 +39,7 @@
     <span class="hv">{{ h.last }}</span>
     <span class="hc"><span class="{{ h.cls }}">{{ "▲" if h.cls == "up" else "▼" if h.cls == "down" else "■" }} {{ h.chg }}</span> <span class="muted">YTD {{ h.ytd }}</span></span>
     {% endif %}
-    <span class="hs">{{ h.spark|safe }}</span>
+    {% if not h.bad %}<span class="hs">{{ h.spark|safe }}</span>{% endif %}
   </a>
   {% endfor %}
 </section>

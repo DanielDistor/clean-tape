@@ -130,6 +130,10 @@
     boxes.forEach((b) => b.addEventListener("change", apply));
     if (boxes.length) apply();
     const h = readJSON("check-history-data");
+    if (h && !h.d.length && $("check-history")) {
+      $("check-history").innerHTML = '<p class="note" style="padding:1em">No check history yet: it builds up one bar per day as scheduled runs complete.</p>';
+      $("check-history").style.height = "auto";
+    }
     if (h && h.d.length) {
       const total = h.warn.concat(h.fail).reduce((a, b) => a + b, 0);
       plot("check-history", [

@@ -144,6 +144,7 @@ def test_fail_is_visible_and_numbers_are_struck(cfg: Config, tmp_path: Path) -> 
     assert "DATA CHECKS FAILED" in html and "UST 10Y" in html.split("Unreliable:")[1][:400]
     row = re.search(r'<tr id="DGS10"[^>]*>.*?</tr>', html, re.S)
     assert row and 'class="row-fail"' in row.group(0) and "<s>" in row.group(0)
+    assert "<svg" not in row.group(0)  # no sparkline drawing the bad print
     # derived spreads built on the bad leg are marked too
     s2s10s = re.search(r'<tr id="S2S10S"[^>]*>.*?</tr>', html, re.S)
     assert s2s10s and "<s>" in s2s10s.group(0)
