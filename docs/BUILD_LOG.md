@@ -76,3 +76,11 @@ Things that went wrong, how they were caught, and what I learned. Format: what h
 - **How detected:** the check returned the expected FAIL when called directly.
 - **Fix:** baseline assertion skipped for table-level subjects.
 - **Lesson:** debug the test as hard as the code.
+
+## Phase 7 — static site
+
+### The "biggest moves" strip promoted a broken print to headline news
+- **What happened:** with a deliberately broken 10y yield (250%), the tables correctly struck the value through, but the top-of-page "Biggest moves" strip showed `2s10s +24522bp +8609σ` and `UST 10Y +24510bp` as the day's top movers — unmarked. A z-score ranking is *designed* to surface the most extreme number, which is exactly the broken one.
+- **How detected:** rendered the FAIL scenario at phone width and looked at it (the automated test only checked the table rows).
+- **Fix:** series with a FAIL flag on themselves or a leg are excluded from the strip, with a visible "Excluded because their data FAILED checks" note. The 30-day P&L history now applies the same FAIL flags. Test extended to assert both.
+- **Lesson:** every place a number appears needs the quality flag, especially summaries and rankings; "look at it" catches what assertions written in advance don't.

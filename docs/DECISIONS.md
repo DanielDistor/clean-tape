@@ -69,3 +69,11 @@ One line of reasoning each. Newest at the bottom of each section.
 - **DV01 positions have zero notional exposure** in gross/net; their risk is reported as DV01 instead.
 - **Shocks are first-order linear** (DV01 × bp, exposure × %, FX notional × %); no convexity, no correlation, no cross-asset spillover. USD ±3% moves USDxxx pairs up/down and xxxUSD pairs the other way.
 - **30-day cumulative P&L chart treats missing data as zero** for that day (it's a picture of the trend, not an official number), and records how many positions were n/a.
+
+## Site
+- **Charts are drawn client-side by Plotly from embedded JSON** (one small `app.js`), themed from the same CSS tokens as the page, so dark mode is one set of variables. Sparklines are inline SVG generated in Python (no JS needed for the Overview).
+- **Palette**: neutral surfaces; categorical slots blue/orange/aqua (validated set, max three series per chart); status colors (good/warning/critical) only for health, always with an icon and a label; green/red only for move direction.
+- **Headline as-of = latest NYSE date among displayed series**; any row with a different date shows it.
+- **"Pipeline may be down" banner** when the headline date is > 1 NYSE session behind what the run time implies.
+- **FAIL-flagged series**: struck through with the reason in a tooltip, row tinted, excluded from "biggest moves", P&L shown as n/a. Derived series inherit their legs' flags.
+- **Per-series JSON** (~45 KB each since 2020, values rounded per unit) loaded on demand by the Markets page; built site ≈ 2.1 MB.

@@ -269,7 +269,7 @@ def compute_portfolio(cfg: Config, flagged: set[str] | None = None) -> dict:
         "by_asset_class": pnl.aggregate(pos, "asset_class"),
         "totals": pnl.totals(pos),
         "shocks": pnl.shocks_table(pos, cfg.settings.shocks),
-        "history": pnl.pnl_history(positions, wide, cfg.universe, hist_dates[1:]),
+        "history": pnl.pnl_history(positions, wide, cfg.universe, hist_dates[1:], flagged),
     }
 
 
@@ -312,6 +312,24 @@ def pnl_cmd(state_dir: StateOpt = None) -> None:
         )
         typer.echo("\nshocks (linear approximations)")
         typer.echo(r["shocks"].to_string(index=False, formatters=fmt))
+
+
+@app.command(name="build-site")
+def build_site_cmd(state_dir: StateOpt = None) -> None:
+    """Generate the static site into site/ from state."""
+    from cleantape.site.build import build_site
+
+    cfg = _boot(state_dir)
+    try:
+        portfolio = compute_portfolio(cfg)
+    except Exception as e:  # the site must still build and show the problem
+        log.exception("portfolio valuation failed: %s", e)
+        portfolio = None
+    info = build_site(cfg, _state(cfg), get_clock().now_utc(), portfolio)
+    typer.echo(
+        f"site: {info['dir']}  {info['bytes'] / 1024:.0f} KB  status={info['status']} "
+        f"headline={info['headline']} stale={info['stale']}"
+    )
 
 
 def _not_yet(name: str) -> None:

@@ -11,3 +11,4 @@ reports/
 logs/
 *.duckdb
 .DS_Store
+.playwright-mcp/

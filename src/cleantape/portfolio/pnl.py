@@ -263,16 +263,21 @@ def shocks_table(pos: pd.DataFrame, shocks: list[Shock]) -> pd.DataFrame:
 
 
 def pnl_history(
-    positions: list[Position], wide: pd.DataFrame, universe: Universe, dates: list[dt.date]
+    positions: list[Position],
+    wide: pd.DataFrame,
+    universe: Universe,
+    dates: list[dt.date],
+    flagged: set[str] | None = None,
 ) -> pd.DataFrame:
-    """Daily total P&L for each date in ``dates`` (positions with missing data contribute 0)."""
+    """Daily total P&L for each date in ``dates``. Positions with missing data, or on an
+    instrument with a current FAIL check, contribute 0 (and are counted in ``n_a``)."""
     rows = []
     for d in dates:
         as_of = {
             p.instrument_id: get_calendar(universe.by_id[p.instrument_id].calendar).on_or_before(d)
             for p in positions
         }
-        v = value_positions(positions, wide, universe, as_of, set())
+        v = value_positions(positions, wide, universe, as_of, flagged or set())
         rows.append(
             {
                 "date": d,
