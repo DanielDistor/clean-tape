@@ -132,7 +132,7 @@ instruments:
      units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 0,
      bounds: {min: 0.5, max: 30.0}, display_group: commodities, display_order: 40, is_future: true}
   - {id: WTI_SPOT, name: "WTI spot (EIA via FRED)", asset_class: commodities, source: fred, source_symbol: DCOILWTICO,
-     units: price, change_mode: pct, calendar: nyse, expected_lag_business_days: 3,
+     units: price, change_mode: pct, calendar: us_bond, expected_lag_business_days: 5,
      bounds: {min: -50.0, max: 250.0}, display_group: commodities, display_order: 50}
 
   # ---------------------------------------------------------------- commodities: ETFs (used for P&L)

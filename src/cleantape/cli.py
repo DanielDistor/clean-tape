@@ -52,6 +52,53 @@ def version() -> None:
     typer.echo(__version__)
 
 
+def _state(cfg: Config):
+    from cleantape.store.state import State
+
+    return State(cfg.state_dir)
+
+
+def _print_ingest(summary) -> None:  # type: ignore[no-untyped-def]
+    typer.echo(
+        f"drops={summary.drops} inserted={summary.inserted} revised={summary.revised} "
+        f"unchanged_drops={summary.unchanged_drops} failed_sources={summary.failed_sources or '-'} "
+        f"fallback_used={summary.fallback_used or '-'}"
+    )
+    for e in summary.parse_errors:
+        typer.echo(f"  parse error: {e}", err=True)
+
+
+@app.command()
+def backfill(
+    start: Annotated[str, typer.Option(help="First date, YYYY-MM-DD")] = "",
+    state_dir: StateOpt = None,
+) -> None:
+    """Download history from --start (default from settings) into the state directory."""
+    from cleantape.ingest.run import run_ingest
+
+    cfg = _boot(state_dir)
+    run_id = new_run_id()
+    set_run_id(run_id)
+    first = _date(start) or cfg.settings.ingest.backfill_start
+    summary = run_ingest(cfg, _state(cfg), get_clock(), run_id, first)
+    _print_ingest(summary)
+
+
+@app.command()
+def ingest(state_dir: StateOpt = None) -> None:
+    """Fetch latest data with a lookback window (catches late data and revisions)."""
+    from cleantape.clock import ny_today
+    from cleantape.ingest.run import lookback_start, run_ingest
+
+    cfg = _boot(state_dir)
+    run_id = new_run_id()
+    set_run_id(run_id)
+    clock = get_clock()
+    start = lookback_start(ny_today(clock.now_utc()), cfg.settings.ingest.lookback_business_days)
+    summary = run_ingest(cfg, _state(cfg), clock, run_id, start)
+    _print_ingest(summary)
+
+
 def _not_yet(name: str) -> None:
     typer.echo(f"`{name}` is not implemented yet", err=True)
     raise typer.Exit(2)

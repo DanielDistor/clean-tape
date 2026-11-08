@@ -48,4 +48,5 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+pythonpath = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
