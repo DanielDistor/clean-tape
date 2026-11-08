@@ -42,7 +42,7 @@
         { mode: "lines+markers", marker: { size: 8, line: { color: css("--surface"), width: 2 } },
           hovertemplate: "%{y:.2f}%<extra>%{fullData.name}</extra>" }));
       plot("curve", data, { showlegend: true, legend: { orientation: "h", y: -0.15 }, hovermode: "closest",
-        yaxis: { ticksuffix: "%", gridcolor: css("--grid") }, xaxis: { type: "category" } });
+        yaxis: { ticksuffix: "%", gridcolor: css("--grid") }, xaxis: { type: "category", gridcolor: css("--grid"), linecolor: css("--axis") } });
     }
     const hist = readJSON("history-data") || {};
     Object.values(hist).forEach((s) => {
@@ -179,7 +179,63 @@
     });
   }
 
-  function init() { chrome(); rates(); markets(); portfolio(); health(); }
+  // ---------------------------------------------------------------- Fit to screen (Overview)
+  // Binary-search the largest font size (--fs, which every size inside <main> is relative to)
+  // at which the Overview fits the window with no page scroll and no clipped table columns.
+  function fitToScreen() {
+    if (document.body.dataset.page !== "overview") return;
+    const main = document.querySelector("main");
+    const MIN = 9, MAX = 17, COMPACT_BELOW = 11.5;
+    const eligible = () => window.innerWidth >= 1000 && window.innerHeight >= 560;
+    const fits = () => {
+      if (main.scrollHeight > main.clientHeight + 1) return false;
+      for (const c of document.querySelectorAll(".col")) if (c.scrollHeight > c.clientHeight + 1) return false;
+      for (const s of main.querySelectorAll(".scroll")) if (s.scrollWidth > s.clientWidth + 1) return false;
+      return true;
+    };
+    // Largest --fs that fits with the current layout (MIN if nothing fits).
+    function search() {
+      let lo = MIN, hi = MAX;
+      main.style.setProperty("--fs", `${hi}px`);
+      if (fits()) return hi;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2;
+        main.style.setProperty("--fs", `${mid}px`);
+        if (fits()) lo = mid; else hi = mid;
+      }
+      main.style.setProperty("--fs", `${lo}px`);  // apply the best size found, not the last probe
+      return lo;
+    }
+    function fit() {
+      const body = document.body;
+      if (!eligible()) {
+        body.classList.remove("fit", "compact");
+        main.style.removeProperty("--fs");
+        return;
+      }
+      body.classList.add("fit");
+      body.classList.remove("compact");
+      const full = search();
+      if (full < COMPACT_BELOW) {
+        // Short screen: drop the hero sparklines and keep whichever layout gives bigger text.
+        body.classList.add("compact");
+        const compact = search();
+        if (compact <= full) { body.classList.remove("compact"); search(); }
+      }
+      // Even the minimum doesn't fit (very short window): let it scroll rather than clip.
+      if (!fits()) {
+        body.classList.remove("fit", "compact");
+        main.style.removeProperty("--fs");
+      }
+    }
+    let raf = 0;
+    const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); };
+    window.addEventListener("resize", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    fit();
+  }
+
+  function init() { chrome(); fitToScreen(); rates(); markets(); portfolio(); health(); }
   if (window.Plotly || !document.querySelector('script[src*="plotly"]')) init();
   else window.addEventListener("load", init);
 })();
