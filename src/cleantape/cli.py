@@ -351,16 +351,87 @@ def report(
     typer.echo(f"report: {paths['html']}\n        {paths['xlsx']}")
 
 
-def _not_yet(name: str) -> None:
-    typer.echo(f"`{name}` is not implemented yet", err=True)
-    raise typer.Exit(2)
+@app.command()
+def run(
+    slot: Annotated[str, typer.Option(help="auto | morning | evening")] = "auto",
+    force: Annotated[bool, typer.Option(help="Bypass the slot window / already-ran guard")] = False,
+    outcome_file: Annotated[Path | None, typer.Option(help="Write a JSON outcome here")] = None,
+    state_dir: StateOpt = None,
+) -> None:
+    """Full pipeline run for a slot. Exits 1 if checks FAIL or a stage crashed."""
+    from cleantape.pipeline import run as run_pipeline
+    from cleantape.pipeline import write_outcome
+
+    cfg = _boot(state_dir)
+    run_id = new_run_id()
+    set_run_id(run_id)
+    outcome = run_pipeline(cfg, get_clock(), run_id, slot=slot, force=force)
+    if outcome_file:
+        write_outcome(outcome_file, outcome)
+    if not outcome.ran:
+        typer.echo(f"nothing to do: {outcome.reason}")
+        return
+    typer.echo(
+        f"run {run_id} slot={outcome.slot} checks={outcome.status} "
+        f"failed_stages={outcome.stage_failures or '-'}"
+    )
+    raise typer.Exit(outcome.exit_code)
 
 
 @app.command()
 def status(state_dir: StateOpt = None) -> None:
-    """Print the last runs and current health."""
-    _boot(state_dir)
-    _not_yet("status")
+    """Print the last runs and current data health."""
+    import pandas as pd
+
+    from cleantape.checks.runner import overall
+
+    cfg = _boot(state_dir)
+    st = _state(cfg)
+    runs = st.read("runs")
+    if runs.empty:
+        typer.echo("no runs recorded yet")
+    else:
+        last = runs[runs["stage"] == "run"].tail(8)
+        with pd.option_context("display.width", 200, "display.max_colwidth", 80):
+            typer.echo(last[["run_id", "slot", "ny_date", "ok", "detail"]].to_string(index=False))
+        lr = runs[runs["run_id"] == runs["run_id"].max()]
+        typer.echo("\nstages of last run:")
+        lr = lr.assign(detail=lr["detail"].str.slice(0, 90))
+        typer.echo(lr[["stage", "ok", "duration_ms", "detail"]].to_string(index=False))
+    checks = st.read("check_results")
+    if checks.empty:
+        typer.echo("\nno check results yet")
+        return
+    latest = checks[checks["run_id"] == checks["run_id"].max()]
+    typer.echo(f"\ncurrent health ({latest['run_id'].iloc[0]}): {overall(latest).name}")
+    print_results(latest, only_problems=True, limit=20)
+
+
+state_app = typer.Typer(help="Sync ./state with the `data` branch")
+app.add_typer(state_app, name="state")
+
+
+@state_app.command("pull")
+def state_pull(state_dir: StateOpt = None) -> None:
+    """Replace the state directory with the remote `data` branch."""
+    from cleantape.store.sync import pull
+
+    cfg = _boot(state_dir)
+    pull(cfg.root, cfg.state_dir)
+    typer.echo(f"pulled data branch into {cfg.state_dir}")
+
+
+@state_app.command("push")
+def state_push(
+    message: Annotated[str, typer.Option(help="Commit message")] = "",
+    state_dir: StateOpt = None,
+) -> None:
+    """Force-push the state directory as a single commit on the `data` branch."""
+    from cleantape.store.sync import push
+
+    cfg = _boot(state_dir)
+    push(cfg.root, cfg.state_dir, message or f"state {new_run_id()}")
+    typer.echo("pushed state to origin/data")
 
 
 def _date(value: str | None) -> dt.date | None:

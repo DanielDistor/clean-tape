@@ -1,0 +1,99 @@
+name: daily
+# Two logical runs per weekday, in New York time: morning (06:30–09:30 ET) and evening
+# (18:15–22:00 ET). GitHub cron is UTC-only and can fire late, so each slot has two crons
+# (one lands in the window under EST, the other under EDT; odd minute :37 avoids the :00 rush).
+# `cleantape run --slot auto` decides whether to work: inside a window and not yet done today.
+on:
+  schedule:
+    - cron: "37 10 * * 1-5" # morning: 06:37 EDT (05:37 EST → outside window, no-op)
+    - cron: "37 11 * * 1-5" # morning: 06:37 EST / 07:37 EDT
+    - cron: "37 22 * * 1-5" # evening: 18:37 EDT (17:37 EST → outside window, no-op)
+    - cron: "37 23 * * 1-5" # evening: 18:37 EST / 19:37 EDT
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: Slot to run
+        type: choice
+        options: [evening, morning, auto]
+        default: evening
+      force:
+        description: Bypass the slot window / already-ran guard
+        type: boolean
+        default: true
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the data branch
+  pages: write
+  id-token: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Pull state from the data branch
+        run: uv run cleantape state pull
+
+      - name: Run pipeline
+        id: run
+        env:
+          SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || 'auto' }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+        run: |
+          set +e
+          args="--slot $SLOT"
+          if [ "$FORCE" = "true" ]; then args="$args --force"; fi
+          uv run cleantape run $args --outcome-file outcome.json
+          code=$?
+          ran=$(python3 -c 'import json; print(str(json.load(open("outcome.json"))["ran"]).lower())' 2>/dev/null || echo false)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "ran=$ran" >> "$GITHUB_OUTPUT"
+          echo "exit code $code, ran=$ran"
+
+      - name: Push state to the data branch
+        if: steps.run.outputs.ran == 'true'
+        run: uv run cleantape state push --message "state run ${{ github.run_id }}"
+
+      - name: Upload site artifact
+        if: steps.run.outputs.ran == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        if: steps.run.outputs.ran == 'true'
+        uses: actions/deploy-pages@v4
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Deliberately last: the site already shows the failure; a red run triggers
+      # GitHub's failure email, which is the alert.
+      - name: Fail if checks failed or a stage crashed
+        if: steps.run.outputs.code != '0'
+        run: |
+          echo "::error::cleantape run exited ${{ steps.run.outputs.code }} (data checks FAILED or a stage crashed) — see the Health page"
+          exit 1
